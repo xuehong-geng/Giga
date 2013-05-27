@@ -44,7 +44,9 @@
     <Compile Include="Configuration\LogConfigurationSection.cs" />
     <Compile Include="Configuration\LoggerConfigurationElement.cs" />
     <Compile Include="Configuration\ParameterConfigurationElement.cs" />
-    <Compile Include="LoggerFactory.cs" />
+    <Compile Include="File\FileLogger.cs" />
+    <Compile Include="Logger.cs" />
+    <Compile Include="LogManager.cs" />
     <Compile Include="EventLog.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

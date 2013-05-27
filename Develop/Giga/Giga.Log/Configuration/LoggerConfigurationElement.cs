@@ -25,11 +25,21 @@ namespace Giga.Log.Configuration
         /// <summary>
         /// Type of logger
         /// </summary>
-        [ConfigurationProperty("type", IsKey = false, IsRequired=true)]
+        [ConfigurationProperty("type", IsKey = false, IsRequired = true)]
         public String Type
         {
             get { return (String)this["type"]; }
             set { this["type"] = value; }
+        }
+
+        /// <summary>
+        /// Severity of logger
+        /// </summary>
+        [ConfigurationProperty("severity", IsKey = false, IsRequired = false, DefaultValue = "Error")]
+        public String Severity
+        {
+            get { return (String)this["severity"]; }
+            set { this["severity"] = value; }
         }
 
         /// <summary>
@@ -51,6 +61,7 @@ namespace Giga.Log.Configuration
             get { return (bool)this["synchronize"]; }
             set { this["synchronize"] = value; }
         }
+
 
         /// <summary>
         /// Parameters collection

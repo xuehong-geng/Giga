@@ -12,5 +12,14 @@ namespace Giga.Log.Configuration
     /// </summary>
     public class LogConfigurationSection : ConfigurationSection
     {
+        [ConfigurationProperty("Loggers", IsDefaultCollection=false)]
+        [ConfigurationCollection(typeof(LoggerConfigurationElement),
+            AddItemName="Logger",
+            CollectionType=ConfigurationElementCollectionType.AddRemoveClearMap)]
+        public LoggerConfigurationCollection Loggers
+        {
+            get { return (LoggerConfigurationCollection)this["Loggers"]; }
+            set { this["Loggers"] = value; }
+        }
     }
 }

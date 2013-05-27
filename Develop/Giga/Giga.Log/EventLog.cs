@@ -31,6 +31,27 @@ namespace Giga.Log
     [DataContract]
     public class EventLog
     {
+        public EventLog()
+        {
+            LogTime = DateTime.Now;
+        }
+        public EventLog(String source, EventSeverity severity, String messageFormat, params object[] args)
+        {
+            LogTime = DateTime.Now;
+            Source = source;
+            Severity = severity;
+            Message = String.Format(messageFormat, args);
+            CapturedException = null;
+        }
+        public EventLog(String source, EventSeverity severity, Exception exception, String messageFormat, params object[] args)
+        {
+            LogTime = DateTime.Now;
+            Source = source;
+            Severity = severity;
+            Message = String.Format(messageFormat, args);
+            CapturedException = exception;
+        }
+
         /// <summary>
         /// Time when event happened
         /// </summary>
@@ -60,5 +81,20 @@ namespace Giga.Log
         /// </summary>
         [DataMember]
         public Exception CapturedException { get; set; }
+
+        /// <summary>
+        /// Convert to string
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            StringBuilder str = new StringBuilder();
+            str.AppendFormat("{0} [{1}] [{2}] :: {3}", LogTime, Source, Enum.GetName(typeof(EventSeverity),Severity), Message);
+            if (CapturedException != null)
+            {
+                str.AppendFormat(" Exception: {0}", CapturedException.Message);
+            }
+            return str.ToString();
+        }
     }
 }
