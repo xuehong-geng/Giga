@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -124,6 +125,34 @@ namespace Giga.Log
         }
 
         /// <summary>
+        /// Helper function to get the calling method's info
+        /// </summary>
+        /// <returns></returns>
+        protected static String GetCallingSource()
+        {
+#if DEBUG
+            StackFrame frame = new StackFrame(2, true);
+            return String.Format("{0}.{1}@{2};L{3}",
+                frame.GetMethod().ReflectedType.Name,
+                frame.GetMethod().Name,
+                frame.GetFileName(),
+                frame.GetFileLineNumber());
+#else
+            StackTrace trace = new StackTrace();
+            //System.Diagnostics.Trace.WriteLine(trace.ToString());
+            int i=0;
+            StackFrame frame = trace.GetFrame(i++);
+            while (frame.GetMethod().ReflectedType.Equals(typeof(LogManager)))
+            {
+                frame = trace.GetFrame(i++);
+            }
+            return String.Format("{0}.{1}",
+                frame.GetMethod().ReflectedType.Name,
+                frame.GetMethod().Name);
+#endif
+        }
+
+        /// <summary>
         /// Helper method to log verbose information
         /// </summary>
         /// <param name="source">Event log source</param>
@@ -132,6 +161,15 @@ namespace Giga.Log
         public static void Verbose(String source, String messageFmt, params object[] args)
         {
             Log(source, EventSeverity.Verbose, messageFmt, args);
+        }
+        /// <summary>
+        /// Helper method to log verbose information
+        /// </summary>
+        /// <param name="messageFmt">Message formatting string</param>
+        /// <param name="args">Arguments for message formatting</param>
+        public static void Verbose(String messageFmt, params object[] args)
+        {
+            Log(GetCallingSource(), EventSeverity.Verbose, messageFmt, args);
         }
 
         /// <summary>
@@ -144,6 +182,15 @@ namespace Giga.Log
         {
             Log(source, EventSeverity.Info, messageFmt, args);
         }
+        /// <summary>
+        /// Helper method to log information
+        /// </summary>
+        /// <param name="messageFmt">Message formatting string</param>
+        /// <param name="args">Arguments for message formatting</param>
+        public static void Info(String messageFmt, params object[] args)
+        {
+            Log(GetCallingSource(), EventSeverity.Info, messageFmt, args);
+        }
 
         /// <summary>
         /// Helper method to log warning
@@ -155,6 +202,15 @@ namespace Giga.Log
         {
             Log(source, EventSeverity.Warning, messageFmt, args);
         }
+        /// <summary>
+        /// Helper method to log warning
+        /// </summary>
+        /// <param name="messageFmt">Message formatting string</param>
+        /// <param name="args">Arguments for message formatting</param>
+        public static void Warning(String messageFmt, params object[] args)
+        {
+            Log(GetCallingSource(), EventSeverity.Warning, messageFmt, args);
+        }
 
         /// <summary>
         /// Helper method to log error
@@ -165,6 +221,15 @@ namespace Giga.Log
         public static void Error(String source, String messageFmt, params object[] args)
         {
             Log(source, EventSeverity.Error, messageFmt, args);
+        }
+        /// <summary>
+        /// Helper method to log error
+        /// </summary>
+        /// <param name="messageFmt">Message formatting string</param>
+        /// <param name="args">Arguments for message formatting</param>
+        public static void Error(String messageFmt, params object[] args)
+        {
+            Log(GetCallingSource(), EventSeverity.Error, messageFmt, args);
         }
 
         /// <summary>
@@ -178,6 +243,16 @@ namespace Giga.Log
         {
             Log(source, EventSeverity.Error, err, messageFmt, args);
         }
+        /// <summary>
+        /// Helper method to log error
+        /// </summary>
+        /// <param name="err">Related exception</param>
+        /// <param name="messageFmt">Message formatting string</param>
+        /// <param name="args">Arguments for message formatting</param>
+        public static void Error(Exception err, String messageFmt, params object[] args)
+        {
+            Log(GetCallingSource(), EventSeverity.Error, err, messageFmt, args);
+        }
 
         /// <summary>
         /// Helper method to log fatal error
@@ -188,6 +263,15 @@ namespace Giga.Log
         public static void Fatal(String source, String messageFmt, params object[] args)
         {
             Log(source, EventSeverity.Fatal, messageFmt, args);
+        }
+        /// <summary>
+        /// Helper method to log fatal error
+        /// </summary>
+        /// <param name="messageFmt">Message formatting string</param>
+        /// <param name="args">Arguments for message formatting</param>
+        public static void Fatal(String messageFmt, params object[] args)
+        {
+            Log(GetCallingSource(), EventSeverity.Fatal, messageFmt, args);
         }
 
         /// <summary>
@@ -200,6 +284,16 @@ namespace Giga.Log
         public static void Fatal(String source, Exception err, String messageFmt, params object[] args)
         {
             Log(source, EventSeverity.Fatal, err, messageFmt, args);
+        }
+        /// <summary>
+        /// Helper method to log fatal error
+        /// </summary>
+        /// <param name="err">Related exception</param>
+        /// <param name="messageFmt">Message formatting string</param>
+        /// <param name="args">Arguments for message formatting</param>
+        public static void Fatal(Exception err, String messageFmt, params object[] args)
+        {
+            Log(GetCallingSource(), EventSeverity.Fatal, err, messageFmt, args);
         }
 
     }

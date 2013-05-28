@@ -24,5 +24,16 @@ namespace Giga.Test.Log
             log.SetEnvironment("Method", GetType().GetMethod("TestEventLogs"));
             LogManager.Log(log);
         }
+
+        [TestMethod]
+        public void TestEventLogWithFileLocation()
+        {
+            // Normal event log helpers
+            LogManager.Fatal("This is a fatal error test at {0}!", DateTime.Now);
+            LogManager.Error("This is a fatal error test at {0}!", DateTime.Now);
+            LogManager.Warning("This is a fatal error test at {0}!", DateTime.Now);
+            LogManager.Info("This is a fatal error test at {0}!", DateTime.Now);
+            LogManager.Verbose("This is a fatal error test at {0}!", DateTime.Now);
+        }
     }
 }

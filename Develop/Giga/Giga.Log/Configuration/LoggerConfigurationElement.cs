@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Giga.Configuration;
 
 namespace Giga.Log.Configuration
 {
@@ -116,7 +117,7 @@ namespace Giga.Log.Configuration
         {
             if (!Contains(name))
                 return null;
-            return this[name] as LoggerConfigurationElement;
+            return this.BaseGet(name) as LoggerConfigurationElement;
         }
     }
 }

@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{6FF12085-5968-4C5A-A228-568603075BC5}</ProjectGuid>
+    <ProjectGuid>{4FD8B37C-226F-4530-B952-9899B46ED875}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Giga.Log</RootNamespace>
-    <AssemblyName>Giga.Log</AssemblyName>
+    <RootNamespace>Giga</RootNamespace>
+    <AssemblyName>Giga.Common</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -17,7 +17,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG</DefineConstants>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -33,7 +33,6 @@
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -41,23 +40,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Configuration\LogConfigurationSection.cs" />
-    <Compile Include="Configuration\LoggerConfigurationElement.cs" />
-    <Compile Include="FileLogger.cs" />
-    <Compile Include="Logger.cs" />
-    <Compile Include="LogManager.cs" />
-    <Compile Include="EventLog.cs" />
-    <Compile Include="ILogger.cs" />
+    <Compile Include="Configuration\ParameterConfigurationElement.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Giga.Common\Giga.Common.csproj">
-      <Project>{4fd8b37c-226f-4530-b952-9899b46ed875}</Project>
-      <Name>Giga.Common</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

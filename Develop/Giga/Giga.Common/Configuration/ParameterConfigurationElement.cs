@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Giga.Log.Configuration
+namespace Giga.Configuration
 {
     /// <summary>
     /// Configuration element for parameter

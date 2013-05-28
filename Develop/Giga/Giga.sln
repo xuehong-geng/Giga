@@ -5,6 +5,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Giga.Log", "Giga.Log\Giga.L
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Giga.Test", "Giga.Test\Giga.Test.csproj", "{DD21114E-0E5D-4A8C-9E72-19F27E6B874F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Giga.User", "Giga.User\Giga.User.csproj", "{F51B8071-2AC1-4C2F-A9D9-12AC74080B6E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Giga.Common", "Giga.Common\Giga.Common.csproj", "{4FD8B37C-226F-4530-B952-9899B46ED875}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,6 +23,14 @@ Global
 		{DD21114E-0E5D-4A8C-9E72-19F27E6B874F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DD21114E-0E5D-4A8C-9E72-19F27E6B874F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DD21114E-0E5D-4A8C-9E72-19F27E6B874F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F51B8071-2AC1-4C2F-A9D9-12AC74080B6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F51B8071-2AC1-4C2F-A9D9-12AC74080B6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F51B8071-2AC1-4C2F-A9D9-12AC74080B6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F51B8071-2AC1-4C2F-A9D9-12AC74080B6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FD8B37C-226F-4530-B952-9899B46ED875}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FD8B37C-226F-4530-B952-9899B46ED875}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FD8B37C-226F-4530-B952-9899B46ED875}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FD8B37C-226F-4530-B952-9899B46ED875}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

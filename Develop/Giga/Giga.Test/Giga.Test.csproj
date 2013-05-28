@@ -63,6 +63,10 @@
       <Project>{6ff12085-5968-4c5a-a228-568603075bc5}</Project>
       <Name>Giga.Log</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Giga.User\Giga.User.csproj">
+      <Project>{f51b8071-2ac1-4c2f-a9d9-12ac74080b6e}</Project>
+      <Name>Giga.User</Name>
+    </ProjectReference>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
