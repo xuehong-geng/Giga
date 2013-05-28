@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Giga.Log.File
+namespace Giga.Log
 {
     /// <summary>
     /// File logger
@@ -16,6 +16,26 @@ namespace Giga.Log.File
         private String _baseName = null;
         private String _curLogFile = null;
         private long _maxSize = 1024000;
+
+        /// <summary>
+        /// Make sure directory exist. Create it if it is not.
+        /// </summary>
+        /// <param name="path"></param>
+        protected bool EnsureDirExist(String path)
+        {
+            if (Directory.Exists(path))
+                return true;
+
+            String parent = Path.GetDirectoryName(path);
+            if (!EnsureDirExist(parent))
+            {   // Cannot create parent
+                return false;
+            }
+
+            DirectoryInfo info = Directory.CreateDirectory(path);
+            System.Diagnostics.Trace.WriteLine(String.Format("Directory {0} created.", info.FullName));
+            return true;
+        }
 
         public override void Initialize(Configuration.LoggerConfigurationElement cfg)
         {
@@ -33,6 +53,11 @@ namespace Giga.Log.File
                 {   // Relative path configured
                     _rootPath = Path.Combine(appBaseDir, _rootPath);
                 }
+            }
+            // Make sure root dir exist
+            if (!EnsureDirExist(_rootPath))
+            {
+                System.Diagnostics.Trace.TraceError("Cannot create directory {0}!", _rootPath);
             }
             // Get base name
             _baseName = cfg.Parameters.Get<String>("BaseName");
@@ -65,6 +90,7 @@ namespace Giga.Log.File
             {
                 String newFile = _baseName + DateTime.Now.ToString("yyyyMMddhhmmss") + ".log";
                 _curLogFile = Path.Combine(_rootPath, newFile);
+                System.Diagnostics.Trace.WriteLine("Current Log File = " + _curLogFile);
             }
         }
 
@@ -77,10 +103,18 @@ namespace Giga.Log.File
             // Ensure file size
             CalculateFileName();
             // Open file for appending log
-            FileStream strm = new FileStream(_curLogFile, FileMode.Append, FileAccess.ReadWrite, FileShare.ReadWrite);
-            StreamWriter writer = new StreamWriter(strm, Encoding.UTF8);
-            writer.WriteLine(log.ToString());
-            writer.Close();
+            try
+            {
+                FileStream strm = new FileStream(_curLogFile, FileMode.Append, FileAccess.Write, FileShare.Write);
+                StreamWriter writer = new StreamWriter(strm, Encoding.UTF8);
+                writer.WriteLine(log.ToString());
+                writer.Close();
+            }
+            catch (Exception err)
+            {
+                System.Diagnostics.Trace.TraceError(err.ToString());
+                throw err;
+            }
         }
     }
 }

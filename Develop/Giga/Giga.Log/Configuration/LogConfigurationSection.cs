@@ -12,6 +12,16 @@ namespace Giga.Log.Configuration
     /// </summary>
     public class LogConfigurationSection : ConfigurationSection
     {
+        /// <summary>
+        /// Whether output log to console at same time
+        /// </summary>
+        [ConfigurationProperty("OutputToConsole", IsRequired = false, DefaultValue = true)]
+        public bool OutputToConsole
+        {
+            get { return (bool)this["OutputToConsole"]; }
+            set { this["OutputToConsole"] = value; }
+        }
+
         [ConfigurationProperty("Loggers", IsDefaultCollection=false)]
         [ConfigurationCollection(typeof(LoggerConfigurationElement),
             AddItemName="Logger",

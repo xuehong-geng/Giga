@@ -92,9 +92,47 @@ namespace Giga.Log
             str.AppendFormat("{0} [{1}] [{2}] :: {3}", LogTime, Source, Enum.GetName(typeof(EventSeverity),Severity), Message);
             if (CapturedException != null)
             {
-                str.AppendFormat(" Exception: {0}", CapturedException.Message);
+                str.AppendFormat("\n\tException: {0}", CapturedException.Message);
+            }
+            if (_environments.Count > 0)
+            {
+                str.Append("\n\tEnvironments:");
+                foreach (String name in _environments.Keys)
+                {
+                    Object val = _environments[name];
+                    str.AppendFormat("\n\t\t{0} = {1}", name, val == null ? "" : val.ToString());
+                }
             }
             return str.ToString();
+        }
+
+        /// <summary>
+        /// Environment parameters that could help figuring out what happened
+        /// </summary>
+        [DataMember]
+        private Dictionary<String, object> _environments = new Dictionary<string, object>();
+
+        /// <summary>
+        /// Set environment parameter
+        /// </summary>
+        /// <param name="name">Name of parameter</param>
+        /// <param name="value">Value of parameter</param>
+        public void SetEnvironment(String name, Object value)
+        {
+            _environments[name] = value;
+        }
+
+        /// <summary>
+        /// Get environment parameter
+        /// </summary>
+        /// <param name="name">Name of parameter</param>
+        /// <returns>Value of parameter</returns>
+        public Object GetEnvironment(String name)
+        {
+            if (!_environments.ContainsKey(name))
+                return null;
+            else
+                return _environments[name];
         }
     }
 }

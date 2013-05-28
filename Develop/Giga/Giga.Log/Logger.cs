@@ -46,7 +46,7 @@ namespace Giga.Log
             }
             catch (Exception err)
             {
-                throw new ConfigurationException(String.Format("Invalid value of Severity: {0}!", cfg.Severity), err);
+                throw new ConfigurationErrorsException(String.Format("Invalid value of Severity: {0}!", cfg.Severity), err);
             }
             if (!Synchronize)
             {   // Asynchronize mode, start backend thread

@@ -84,7 +84,7 @@ namespace Giga.Log.Configuration
         {
             if (!Contains(name))
                 throw new InvalidOperationException(String.Format("Parameter {0} not exist!", name));
-            ParameterConfigurationElement elem = this[name] as ParameterConfigurationElement;
+            ParameterConfigurationElement elem = this.BaseGet(name) as ParameterConfigurationElement;
             if (elem == null)
                 throw new InvalidOperationException(String.Format("Parameter {0} not exist!", name));
             return elem.Get<T>();

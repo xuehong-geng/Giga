@@ -24,6 +24,7 @@ namespace Giga.Log
             LoadLoggers();
         }
 
+        private bool _outputToConsole = true;
         private Dictionary<String, ILogger> _loggers = new Dictionary<string, ILogger>();
 
         /// <summary>
@@ -37,6 +38,7 @@ namespace Giga.Log
                 System.Diagnostics.Trace.TraceWarning("Giga.Log is not configured!\n");
                 return;
             }
+            _outputToConsole = sec.OutputToConsole;
             foreach (LoggerConfigurationElement elemLogger in sec.Loggers)
             {
                 if (_loggers.ContainsKey(elemLogger.Name))
@@ -78,6 +80,20 @@ namespace Giga.Log
                     System.Diagnostics.Trace.TraceError("Log event to logger failed! Event: {0}; Exception: {1}", log, err.ToString());
                 }
             }
+            System.Diagnostics.Trace.WriteLineIf(log != null, log.ToString());
+            if (_outputToConsole)
+            {
+                Console.WriteLine(log.ToString());
+            }
+        }
+
+        /// <summary>
+        /// Helper method to log events
+        /// </summary>
+        /// <param name="log">Event log object</param>
+        public static void Log(EventLog log)
+        {
+            GetInstance().Write(log);
         }
 
         /// <summary>
@@ -91,7 +107,7 @@ namespace Giga.Log
         public static void Log(String source, EventSeverity severity, Exception exception, String messageFmt, params object[] args)
         {
             EventLog evt = new EventLog(source, severity, exception, messageFmt, args);
-            GetInstance().Write(evt);
+            Log(evt);
         }
 
         /// <summary>
