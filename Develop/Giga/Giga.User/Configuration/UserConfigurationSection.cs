@@ -13,6 +13,16 @@ namespace Giga.User.Configuration
     public class UserConfigurationSection : ConfigurationSection
     {
         /// <summary>
+        /// Name of account provider used by default
+        /// </summary>
+        [ConfigurationProperty("accountProvider", IsRequired=true)]
+        public String AccountProvider
+        {
+            get { return (String)this["accountProvider"]; }
+            set { this["accountProvider"] = value; }
+        }
+
+        /// <summary>
         /// Account providers collection
         /// </summary>
         [ConfigurationProperty("AccountProviders", IsDefaultCollection=false)]

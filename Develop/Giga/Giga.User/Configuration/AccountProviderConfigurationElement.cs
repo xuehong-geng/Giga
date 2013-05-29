@@ -14,16 +14,6 @@ namespace Giga.User.Configuration
     public class AccountProviderConfigurationElement : ConfigurationElement
     {
         /// <summary>
-        /// Account provider currently used
-        /// </summary>
-        [ConfigurationProperty("accountProvider", IsRequired=true)]
-        public String AccountProvider
-        {
-            get { return (String)this["accountProvider"]; }
-            set { this["accountProvider"] = value; }
-        }
-
-        /// <summary>
         /// Name of provider
         /// </summary>
         [ConfigurationProperty("name", IsKey=true)]
@@ -41,6 +31,16 @@ namespace Giga.User.Configuration
         {
             get { return (String)this["type"]; }
             set { this["type"] = value; }
+        }
+
+        /// <summary>
+        /// Connect string name of account provider
+        /// </summary>
+        [ConfigurationProperty("connectStringName", IsRequired = true)]
+        public String ConnectStringName
+        {
+            get { return (String)this["connectStringName"]; }
+            set { this["connectStringName"] = value; }
         }
 
         /// <summary>

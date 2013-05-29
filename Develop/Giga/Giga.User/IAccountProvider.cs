@@ -11,5 +11,18 @@ namespace Giga.User
     /// </summary>
     public interface IAccountProvider
     {
+        /// <summary>
+        /// Create new user account
+        /// </summary>
+        /// <param name="info">Information of new account</param>
+        /// <param name="password">Password of new account</param>
+        /// <returns>Account created</returns>
+        Account Create(Account info, String password);
+
+        /// <summary>
+        /// Delete user account
+        /// </summary>
+        /// <param name="id">Id of account to be deleted</param>
+        void Delete(string id);
     }
 }
