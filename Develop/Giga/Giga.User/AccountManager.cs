@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Giga.Log;
 using Giga.User.Configuration;
@@ -112,6 +114,36 @@ namespace Giga.User
         public static void DeleteAccount(String id)
         {
             GetInstance().GetProvider().Delete(id);
+        }
+
+        /// <summary>
+        /// Update account 
+        /// </summary>
+        /// <param name="account">Account info</param>
+        public static void UpdateAccount(Account account)
+        {
+            GetInstance().GetProvider().Update(account);
+        }
+
+        /// <summary>
+        /// Query account
+        /// </summary>
+        /// <param name="predicate">Query condition</param>
+        /// <returns></returns>
+        public static IQueryable<Account> QueryAccount(Expression<Func<Account, bool>> predicate)
+        {
+            return GetInstance().GetProvider().Query(predicate);
+        }
+
+        /// <summary>
+        /// Get account by ID
+        /// </summary>
+        /// <param name="id">ID of account</param>
+        /// <returns></returns>
+        public static Account GetAccount(String id)
+        {
+            IQueryable<Account> rs = QueryAccount(a => a.ID == id);
+            return rs.FirstOrDefault();
         }
     }
 }

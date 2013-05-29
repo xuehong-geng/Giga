@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using Giga.User.Configuration;
@@ -51,5 +52,9 @@ namespace Giga.User
         public abstract Account Create(Account info, string password);
 
         public abstract void Delete(string id);
+
+        public abstract void Update(Account account);
+
+        public abstract IQueryable<Account> Query(Expression<Func<Account, bool>> predicate);
     }
 }

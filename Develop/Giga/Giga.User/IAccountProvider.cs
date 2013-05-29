@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -24,5 +25,17 @@ namespace Giga.User
         /// </summary>
         /// <param name="id">Id of account to be deleted</param>
         void Delete(string id);
+
+        /// <summary>
+        /// Update user account
+        /// </summary>
+        /// <param name="account"></param>
+        void Update(Account account);
+
+        /// <summary>
+        /// Query account
+        /// </summary>
+        /// <param name="predicate">Condition expression</param>
+        IQueryable<Account> Query(Expression<Func<Account, bool>> predicate);
     }
 }

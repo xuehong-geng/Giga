@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.Entity.Migrations;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -45,6 +46,11 @@ namespace Giga.User.Providers
             Delete("Administrator");
         }
 
+        public override void Initialize(Configuration.AccountProviderConfigurationElement cfg)
+        {
+            base.Initialize(cfg);
+        }
+
         protected AccountDBContext DB
         {
             get
@@ -65,8 +71,8 @@ namespace Giga.User.Providers
         /// <returns></returns>
         public override Account Create(Account info, string password)
         {
-            info.CreatedTime = DateTime.Now;
-            info.ModifiedTime = info.CreatedTime;
+            //info.CreatedTime = DateTime.Now;
+            //info.ModifiedTime = info.CreatedTime;
             DB.Accounts.Add(info);
             DB.SaveChanges();
             return info;
@@ -86,6 +92,28 @@ namespace Giga.User.Providers
                 DB.Accounts.Remove(acc);
                 DB.SaveChanges();
             }
+        }
+
+        /// <summary>
+        /// Update account
+        /// </summary>
+        /// <param name="account"></param>
+        public override void Update(Account account)
+        {
+            Account exist = Query(a => a.ID == account.ID).FirstOrDefault();
+            if (exist == null)
+                throw new InvalidOperationException(String.Format("Account {0} not exist!", account.ID));
+            exist.UpdateFrom(account);
+            DB.SaveChanges();
+        }
+
+        /// <summary>
+        /// Query account
+        /// </summary>
+        /// <param name="predicate">Condition expression</param>
+        public override IQueryable<Account> Query(Expression<Func<Account, bool>> predicate)
+        {
+            return DB.Accounts.Where(predicate);
         }
     }
 }

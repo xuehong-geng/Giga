@@ -16,6 +16,22 @@ namespace Giga.User
     public class Account
     {
         /// <summary>
+        /// Tool to encrypt password string
+        /// </summary>
+        /// <param name="pwd">Original password string</param>
+        /// <returns>Encrypted password</returns>
+        internal static String EncryptPassword(String pwd)
+        {
+            byte[] eBytes = MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(pwd));
+            StringBuilder b = new StringBuilder();
+            foreach (byte e in eBytes)
+            {
+                b.AppendFormat("{0:X2}", e);
+            }
+            return b.ToString();
+        }
+
+        /// <summary>
         /// Unique identity of account
         /// </summary>
         [DataMember]
@@ -66,19 +82,30 @@ namespace Giga.User
         public String ModifiedBy { get; set; }
 
         /// <summary>
-        /// Tool to encrypt password string
+        /// Contact Email
         /// </summary>
-        /// <param name="pwd">Original password string</param>
-        /// <returns>Encrypted password</returns>
-        internal static String EncryptPassword(String pwd)
+        [DataMember]
+        [EmailAddress]
+        [MaxLength(1024)]
+        public String Email { get; set; }
+
+        /// <summary>
+        /// Mobile phone number
+        /// </summary>
+        [DataMember]
+        [Phone]
+        [MaxLength(64)]
+        public String MobilePhone { get; set; }
+
+        /// <summary>
+        /// Update fields from another account
+        /// </summary>
+        /// <param name="account"></param>
+        internal void UpdateFrom(Account account)
         {
-            byte[] eBytes = MD5.Create().ComputeHash(Encoding.UTF8.GetBytes(pwd));
-            StringBuilder b = new StringBuilder();
-            foreach (byte e in eBytes)
-            {
-                b.AppendFormat("{0:X2}", e);
-            }
-            return b.ToString();
+            Name = account.Name;
+            Email = account.Email;
+            MobilePhone = account.MobilePhone;
         }
     }
 }
