@@ -52,6 +52,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Giga.Log.nuspec">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="NuGet\content\app.config.transform" />
+    <None Include="NuGet\content\web.config.transform" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Giga.Common\Giga.Common.csproj">
@@ -59,7 +64,11 @@
       <Name>Giga.Common</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>NuGet pack $(ProjectPath) -IncludeReferencedProjects</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

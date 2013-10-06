@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>http://www.giga.com/license</licenseUrl>
+    <projectUrl>http://www.giga.com/project</projectUrl>
+    <iconUrl>http://www.giga.com/project/image/nuget.ico</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes>First time to pack as NuGet</releaseNotes>
+    <copyright>Copyright 2013. Shawn Xuehong Geng All rights reserved.</copyright>
+    <tags>Giga Event Log File</tags>
+  </metadata>
+  <files>
+    <file src="NuGet\Content\web.config.transform" target="content\" />
+    <file src="NuGet\Content\app.config.transform" target="content\" />
+  </files>
+</package>

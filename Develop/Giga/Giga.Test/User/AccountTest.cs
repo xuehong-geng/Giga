@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Giga.User;
 using System.Threading;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 
 namespace Giga.Test.User
 {
@@ -27,6 +28,7 @@ namespace Giga.Test.User
             act.Name = "Tester";
             Account r = AccountManager.CreateAccount(act, "123456");
             DateTime now = DateTime.Now;
+            
             String user = Thread.CurrentPrincipal.Identity.Name;
             r.Email = "tester@gmail.com";
             r.MobilePhone = "13012938823";
