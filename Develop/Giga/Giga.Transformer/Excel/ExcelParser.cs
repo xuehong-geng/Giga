@@ -13,6 +13,24 @@ using Giga.Transformer.Configuration;
 namespace Giga.Transformer.Excel
 {
     /// <summary>
+    /// Exception : No more entity exist!
+    /// </summary>
+    public class NoMoreEntityException : ApplicationException
+    {
+        public Type EntityType { get; set; }
+
+        public NoMoreEntityException(Type entType)
+        {
+            EntityType = entType;
+        }
+
+        public override string Message
+        {
+            get { return String.Format("No more entity of type {0} exist!", EntityType.FullName); }
+        }
+    }
+
+    /// <summary>
     /// Data parser for handling excel files
     /// </summary>
     public class ExcelParser : IDataParser
@@ -133,7 +151,7 @@ namespace Giga.Transformer.Excel
                 _current = ReadCurrent();
                 return _current != null;
             }
-            catch (Exception)
+            catch (NoMoreEntityException)
             {
                 return false;
             }
@@ -190,6 +208,8 @@ namespace Giga.Transformer.Excel
             int width = br.Col - tl.Col + 1;
             int rangeH = _collectionRange.Height;
             int rangeW = _collectionRange.Width;
+            if (height > rangeH) height = rangeH;   // Make sure height of entity not bigger than collection
+            if (width > rangeW) width = rangeW;     // Make sure width of entity not bigger than collection
             int c = 0, r = 0;
             if (isVertical)
             {   // Entities arranged by rows
@@ -276,12 +296,12 @@ namespace Giga.Transformer.Excel
                     _colCfg.Orientation.Equals("vertical", StringComparison.OrdinalIgnoreCase));
                 _entityRange = _collectionRange.GetSubRange(entRange);
                 if (_entityRange == null)
-                    throw new InvalidOperationException(
-                        String.Format("Cannot find valid range for entity #{0} in collection of {1}", _currentIdx,
-                            typeof (T).FullName));
+                    throw new NoMoreEntityException(typeof(T));
             }
             // Read data for entity
             var ent = _entityRange.ReadEntity<T>(_colCfg.ItemTemplate.Entity);
+            if (ent == null)
+                throw new NoMoreEntityException(typeof(T));
             return ent;
         }
 

@@ -13,6 +13,24 @@ using Giga.Transformer.Configuration;
 namespace Giga.Transformer.Excel
 {
     /// <summary>
+    /// Exception : Cell not exist
+    /// </summary>
+    public class CellNotExistException : ApplicationException
+    {
+        public CellReference Reference { get; set; }
+
+        public CellNotExistException(CellReference reference)
+        {
+            Reference = reference;
+        }
+
+        public override string Message
+        {
+            get { return String.Format("Cell {0} not exist!", Reference); }
+        }
+    }
+
+    /// <summary>
     /// Simulating Range in Excel file with OpenXML SDK
     /// </summary>
     public class ExcelOpenXMLRange
@@ -26,6 +44,11 @@ namespace Giga.Transformer.Excel
 
         public const String REG_CELL_REF = @"(?i)(?<COL>\$?[a-zA-Z]+)(?<ROW>\$?[1-9][0-9]*)";
         public const String REG_RANGE_REF = @"(?i)(?<COL1>\$?[a-zA-Z]+)(?<ROW1>\$?[1-9][0-9]*)\:(?<COL2>\$?[a-zA-Z]+)(?<ROW2>\$?[1-9][0-9]*)";
+        public const String REG_RANGE_PART_REF = @"(?i)((?<COL1>\$?[a-zA-Z]+))?((?<ROW1>\$?[1-9][0-9]*))?\:((?<COL2>\$?[a-zA-Z]+))?((?<ROW2>\$?[1-9][0-9]*))?";
+
+        public static Regex _RegexRange = new Regex(REG_RANGE_PART_REF);
+        public static Regex _RegexCell = new Regex(REG_CELL_REF);
+
 
         protected SpreadsheetDocument _doc = null;
         protected Worksheet _sheet = null;
@@ -69,6 +92,7 @@ namespace Giga.Transformer.Excel
             _bottomRight = new CellReference(r, b);
         }
 
+
         /// <summary>
         /// Calculate range from string expression
         /// </summary>
@@ -77,9 +101,7 @@ namespace Giga.Transformer.Excel
         /// <param name="bottomRight"></param>
         public static void CalculateRange(String reference, ref CellReference topLeft, ref CellReference bottomRight)
         {
-            var regRange = new Regex(REG_RANGE_REF);
-            var regCell = new Regex(REG_CELL_REF);
-            var matchRange = regRange.Match(reference);
+            var matchRange = _RegexRange.Match(reference);
 
             if (topLeft == null) topLeft = new CellReference();
             if (bottomRight == null) bottomRight = new CellReference();
@@ -103,8 +125,8 @@ namespace Giga.Transformer.Excel
             }
             else
             {
-                var matchCell = regCell.Match(reference);
-                if (matchCell.Success)
+                var matchCell = _RegexCell.Match(reference);
+                if (matchCell.Success && matchCell.Length == reference.Trim().Length)
                 {   // It's a cell
                     topLeft.Set(reference);
                     bottomRight.Set(reference);
@@ -121,6 +143,9 @@ namespace Giga.Transformer.Excel
         /// </summary>
         protected void AnalyzeRange()
         {
+            // Since the range might be open (ie. at least one direction is un limited, such as A:J, A1:J), we should
+            // fix it by using sheet's diamention
+            _reference = _sheet.ExpandToSheetBound(_reference);
             CalculateRange(_reference, ref _topLeft, ref _bottomRight);
         }
 
@@ -175,7 +200,7 @@ namespace Giga.Transformer.Excel
                 if (subTL.Col > _bottomRight.Col ||
                     subTL.Row > _bottomRight.Row ||
                     subBR.Col < _topLeft.Col ||
-                    subBR.Row < _topLeft.Row) 
+                    subBR.Row < _topLeft.Row)
                     return null; // Out of range
                 if (subTL.Col < _topLeft.Col) subTL.Col = _topLeft.Col;
                 if (subTL.Row < _topLeft.Row) subTL.Row = _topLeft.Row;
@@ -220,7 +245,7 @@ namespace Giga.Transformer.Excel
         {
             Cell cell = _sheet.Descendants<Cell>().FirstOrDefault(a => a.CellReference == cellRef.ToString());
             if (cell == null)
-                return null;
+                throw new CellNotExistException(cellRef);
             var val = cell.CellValue.InnerText;
             if (cell.DataType != null)
             {   // Check data type
@@ -243,7 +268,6 @@ namespace Giga.Transformer.Excel
                                 return shareStrTbl.SharedStringTable.ElementAt(int.Parse(val)).InnerText;
                             }
                         }
-                        break;
                 }
             }
             return val;
@@ -278,6 +302,38 @@ namespace Giga.Transformer.Excel
         }
 
         /// <summary>
+        /// Convert value from excel to dotNET standard
+        /// </summary>
+        /// <param name="val">value read from excel</param>
+        /// <param name="tgtType">Target type to be converted to</param>
+        /// <returns>Data converted</returns>
+        protected object ConvertExcelValue(object val, Type tgtType)
+        {
+            if (tgtType == val.GetType())
+            {
+                return val;
+            }
+            else
+            {
+                if (tgtType.Name == "Nullable`1")
+                {   // The tgtType is Nullable wrapper, must try to set real data
+                    var baseType = tgtType.GenericTypeArguments[0];
+                    return ConvertExcelValue(val, baseType);
+                }
+                // Need convert data type
+                if (tgtType == typeof(DateTime))
+                {
+                    // Handle datetime specially
+                    return DateTime.FromOADate(Convert.ToDouble(val));
+                }
+                else
+                {
+                    return Convert.ChangeType(val, tgtType);
+                }
+            }
+        }
+
+        /// <summary>
         /// Read one entity from range
         /// </summary>
         /// <typeparam name="T">Type of entity</typeparam>
@@ -287,44 +343,28 @@ namespace Giga.Transformer.Excel
         {
             var ent = new T();
             Type t = typeof(T);
+            bool entExist = false;
             foreach (FieldConfigElement field in cfg.Fields)
             {
                 var pT = t.GetProperty(field.Name);
                 if (pT != null)
                 {   // Handle this property
-                    var cellVal = this[field.Range];
-                    if (cellVal != null)
+                    object cellVal = null;
+                    bool cellExist = true;
+                    try
+                    {
+                        cellVal = this[field.Range];
+                    }
+                    catch (CellNotExistException)
+                    {   // Cell not exist
+                        cellExist = false;
+                    }
+                    if (cellExist && cellVal != null)
                     {
                         try
                         {
-                            if (pT.PropertyType == cellVal.GetType())
-                            {
-                                pT.SetValue(ent, cellVal);
-                            }
-                            else
-                            {
-                                // Need convert data type
-                                try
-                                {
-                                    if (pT.PropertyType == typeof (DateTime))
-                                    {
-                                        // Handle datetime specially
-                                        pT.SetValue(ent, DateTime.FromOADate(Convert.ToDouble(cellVal)));
-                                    }
-                                    else
-                                    {
-                                        var tmp = Convert.ChangeType(cellVal, pT.PropertyType);
-                                        pT.SetValue(ent, tmp);
-                                    }
-                                }
-                                catch (Exception err)
-                                {
-                                    throw new InvalidCastException(
-                                        String.Format(
-                                            "Cannot convert value {0} from cell {1} to property {2}! Err:{3}", cellVal,
-                                            CalculateCellReference(field.Range), field.Name, err.Message));
-                                }
-                            }
+                            pT.SetValue(ent, ConvertExcelValue(cellVal, pT.PropertyType));
+                            entExist = true;
                         }
                         catch (Exception err)
                         {
@@ -335,7 +375,8 @@ namespace Giga.Transformer.Excel
                 }
                 // TODO:Handle sub collections here.
             }
-            return ent;
+
+            return (cfg.AllowNull || entExist) ? ent : null;
         }
     }
 }

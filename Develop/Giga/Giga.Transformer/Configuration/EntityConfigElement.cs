@@ -25,6 +25,19 @@ namespace Giga.Transformer.Configuration
             }
         }
 
+        [ConfigurationProperty("allowNull", IsRequired = false, DefaultValue = "true")]
+        public bool AllowNull
+        {
+            get
+            {
+                return (bool) base["allowNull"];
+            }
+            set
+            {
+                base["allowNull"] = value;
+            }
+        }
+
         [ConfigurationProperty("Fields", IsRequired = false)]
         [ConfigurationCollection(typeof (FieldConfigElement), AddItemName = "Field")]
         public FieldConfigCollection Fields

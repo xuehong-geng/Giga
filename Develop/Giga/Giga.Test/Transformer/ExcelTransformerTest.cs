@@ -45,7 +45,7 @@ namespace Giga.Test.Transformer
         }
 
         [TestMethod]
-        public void TestLoadNormalTabularData()
+        public void TestNormalTabularData_FixedRange()
         {
             // Get configuration
             var cfg =
@@ -62,6 +62,33 @@ namespace Giga.Test.Transformer
             foreach (TestTabularData entity in entities)
             {
                 var serializer = new DataContractJsonSerializer(typeof (TestTabularData));
+                var memStrm = new MemoryStream();
+                var writer = new StreamWriter(memStrm, Encoding.UTF8);
+                serializer.WriteObject(memStrm, entity);
+                byte[] buf = memStrm.GetBuffer();
+                String xmlStr = Encoding.UTF8.GetString(buf);
+                Console.WriteLine(xmlStr);
+            }
+        }
+
+        [TestMethod]
+        public void TestNormalTabularData_DynamicRange()
+        {
+            // Get configuration
+            var cfg =
+                ConfigurationManager.GetSection("Giga.Transformer") as TransformerConfigSection;
+            if (cfg == null)
+                throw new ConfigurationErrorsException("<Giga.Transformer> not exist in configuration!");
+            // Get test file
+            var filePath = GetTestFilePath("TransformerTest.xlsx");
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException(String.Format("Test file {0} not found!", filePath));
+            // Load entities from file
+            var transformer = new Giga.Transformer.Transformer(cfg);
+            var entities = transformer.Load<TestTabularData>(filePath, "TestNormalTabularData_DynamicRange");
+            foreach (TestTabularData entity in entities)
+            {
+                var serializer = new DataContractJsonSerializer(typeof(TestTabularData));
                 var memStrm = new MemoryStream();
                 var writer = new StreamWriter(memStrm, Encoding.UTF8);
                 serializer.WriteObject(memStrm, entity);

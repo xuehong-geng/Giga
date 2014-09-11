@@ -16,7 +16,7 @@ namespace Giga.Test.Transformer
         public int Qty { get; set; }
         public double UnitPrice { get; set; }
         public double Total { get; set; }
-        public DateTime PODate { get; set; }
-        public DateTime DueDate { get; set; }
+        public DateTime? PODate { get; set; }
+        public DateTime? DueDate { get; set; }
     }
 }
