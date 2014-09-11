@@ -37,6 +37,8 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.XML" />
   </ItemGroup>
   <Choose>
     <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
@@ -53,17 +55,29 @@
   <ItemGroup>
     <Compile Include="Log\EventLogTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Transformer\ExcelTestModels.cs" />
+    <Compile Include="Transformer\ExcelTransformerTest.cs" />
     <Compile Include="User\AccountTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
+    <None Include="Transformer\Giga.Transformer.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Transformer\TransformerTest.xlsx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Giga.Log\Giga.Log.csproj">
       <Project>{6ff12085-5968-4c5a-a228-568603075bc5}</Project>
       <Name>Giga.Log</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Giga.Transformer\Giga.Transformer.csproj">
+      <Project>{23cf2a6b-fbd5-4b11-ab37-65ac18ffab9f}</Project>
+      <Name>Giga.Transformer</Name>
     </ProjectReference>
     <ProjectReference Include="..\Giga.User\Giga.User.csproj">
       <Project>{f51b8071-2ac1-4c2f-a9d9-12ac74080b6e}</Project>

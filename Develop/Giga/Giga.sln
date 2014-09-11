@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Giga.Services", "Giga.Servi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Giga.Web", "Giga.Web\Giga.Web.csproj", "{27299595-228D-43EA-BDEB-EEB62B1D428E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Giga.Transformer", "Giga.Transformer\Giga.Transformer.csproj", "{23CF2A6B-FBD5-4B11-AB37-65AC18FFAB9F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,10 @@ Global
 		{27299595-228D-43EA-BDEB-EEB62B1D428E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27299595-228D-43EA-BDEB-EEB62B1D428E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{27299595-228D-43EA-BDEB-EEB62B1D428E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23CF2A6B-FBD5-4B11-AB37-65AC18FFAB9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23CF2A6B-FBD5-4B11-AB37-65AC18FFAB9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23CF2A6B-FBD5-4B11-AB37-65AC18FFAB9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23CF2A6B-FBD5-4B11-AB37-65AC18FFAB9F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
