@@ -125,6 +125,7 @@ namespace Giga.Transformer.Excel
         private T _current = null;
         private ExcelOpenXMLRange _collectionRange = null;
         private ExcelOpenXMLRange _entityRange = null;
+        private ExcelOpenXMLRange _abortBefore = null;
 
         /// <summary>
         /// Initialize entity enumerator
@@ -162,12 +163,14 @@ namespace Giga.Transformer.Excel
         /// </summary>
         public void Reset()
         {
-            _currentIdx = 0;
+            _currentIdx = -1;
+            _current = null;
             _entityRange = null;
-            _current = ReadCurrent();
-            if (_current == null)
-                throw new InvalidDataException(String.Format("There is no valid data for entity {0}",
-                    typeof(T).FullName));
+            _abortBefore = null;
+            if (!String.IsNullOrEmpty(_colCfg.AbortBefore))
+            {   // There is abort flag cell, using defined name to mark cell dynamically.
+                _abortBefore = _doc.GetRange(_colCfg.AbortBefore);
+            }
         }
 
         /// <summary>
@@ -227,49 +230,25 @@ namespace Giga.Transformer.Excel
                 r = rowIdx * height;
                 c = colIdx * width;
             }
-            tl.Col = c+1;
-            tl.Row = r+1;
-            br = tl.Offset(width-1, height-1);
-            return String.Format("{0}:{1}", tl, br);
-        }
+            tl.Col = c + 1;
+            tl.Row = r + 1;
+            // Check abort flag
+            if (_abortBefore != null)
+            {
+                if (isVertical)
+                {   // Vertical
+                    if (tl.Row + _collectionRange.Top - 1 >= _abortBefore.Top)
+                        throw new NoMoreEntityException(typeof (T));
+                }
+                else
+                {   // Horizontal
+                    if (tl.Col + _collectionRange.Left - 1 >= _abortBefore.Left)
+                        throw new NoMoreEntityException(typeof (T));
+                }
+            }
 
-        /// <summary>
-        /// Check if there is a valid entity in file
-        /// </summary>
-        /// <returns></returns>
-        protected bool Validate()
-        {
-            // Get range of collection
-            if (_collectionRange == null)
-            {
-                try
-                {
-                    String rangeCol = _colCfg.Range;
-                    _collectionRange = _doc.GetRange(rangeCol);
-                    if (_collectionRange == null)
-                        return false;
-                }
-                catch (Exception)
-                {
-                    return false;
-                }
-            }
-            // Calculate range of current entity
-            if (_entityRange == null)
-            {
-                try
-                {
-                    EntityConfigElement entCfg = _colCfg.ItemTemplate.Entity;
-                    String entRange = CalculateEntityRange(entCfg.Range, _currentIdx,
-                        _colCfg.Orientation.Equals("vertical", StringComparison.OrdinalIgnoreCase));
-                    _entityRange = _collectionRange.GetSubRange(entRange);
-                }
-                catch (Exception)
-                {
-                    return false;
-                }
-            }
-            return true;
+            br = tl.Offset(width - 1, height - 1);
+            return String.Format("{0}:{1}", tl, br);
         }
 
         /// <summary>
@@ -287,6 +266,7 @@ namespace Giga.Transformer.Excel
                 if (_collectionRange == null)
                     throw new InvalidDataException(String.Format("Cannot find valid range for collection of {0}!",
                         typeof(T).FullName));
+                // For dynamic collection, it's possible to use a defined name to mark the end of co
             }
             // Calculate range of current entity
             if (_entityRange == null)

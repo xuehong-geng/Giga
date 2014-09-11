@@ -51,6 +51,23 @@ namespace Giga.Transformer.Configuration
             }
         }
 
+        /// <summary>
+        /// A defined name/object that acts as the signal of the end of collection.
+        /// </summary>
+        /// <remarks>This property is usually used with a collection that is embeded in a form and its count is dynamical.</remarks>
+        [ConfigurationProperty("abortBefore", IsRequired = false, DefaultValue = "")]
+        public String AbortBefore
+        {
+            get
+            {
+                return (String) base["abortBefore"];
+            }
+            set
+            {
+                base["abortBefore"] = value;
+            }
+        }
+
         [ConfigurationProperty("ItemTemplate", IsRequired = true)]
         public ItemTemplateConfigElement ItemTemplate
         {

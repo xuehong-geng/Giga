@@ -77,7 +77,7 @@ namespace Giga.Transformer.Excel
             var regexRange = new Regex(REG_RANGE_PART_REF);
             var match = regexRange.Match(reference);
             if (!match.Success)
-                throw new InvalidOperationException(String.Format("Reference {0} is invalid!", reference));
+                return reference;
             var l = match.Groups["COL1"].Value;
             var r = match.Groups["COL2"].Value;
             var t = match.Groups["ROW1"].Value;

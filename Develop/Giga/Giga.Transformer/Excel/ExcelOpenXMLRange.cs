@@ -150,6 +150,20 @@ namespace Giga.Transformer.Excel
         }
 
         /// <summary>
+        /// Top cell of range
+        /// </summary>
+        public int Top
+        {
+            get { return _topLeft.Row; }
+        }
+        /// <summary>
+        /// Left cell of range
+        /// </summary>
+        public int Left
+        {
+            get { return _topLeft.Col; }
+        }
+        /// <summary>
         /// Height of range
         /// </summary>
         public int Height

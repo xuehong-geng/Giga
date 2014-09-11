@@ -88,6 +88,8 @@ namespace Giga.Transformer.Excel
             var col = match.Groups["COL"].Value;
             var row = match.Groups["ROW"].Value;
             ColumnName = col;
+            if (row.StartsWith("$"))
+                row = row.Remove(0, 1);
             Row = int.Parse(row);
         }
 
