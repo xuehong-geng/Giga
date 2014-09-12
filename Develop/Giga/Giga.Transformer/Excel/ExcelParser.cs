@@ -272,7 +272,8 @@ namespace Giga.Transformer.Excel
             if (_entityRange == null)
             {
                 EntityConfigElement entCfg = _colCfg.ItemTemplate.Entity;
-                String entRange = CalculateEntityRange(entCfg.Range, _currentIdx,
+                String entRef = _collectionRange.Sheet.ExpandToSheetBound(entCfg.Range);
+                String entRange = CalculateEntityRange(entRef, _currentIdx,
                     _colCfg.Orientation.Equals("vertical", StringComparison.OrdinalIgnoreCase));
                 _entityRange = _collectionRange.GetSubRange(entRange);
                 if (_entityRange == null)

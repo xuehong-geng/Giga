@@ -40,16 +40,21 @@ namespace Giga.Transformer.Excel
             }
         }
 
+        public bool IsColumnAbsolute { get; set; }  // Whether column has $
+        public bool IsRowAbsolute { get; set; }     // Whether row has $
+
         public CellReference()
         {
             Col = 1;
             Row = 1;
+            IsColumnAbsolute = IsRowAbsolute = false;
         }
 
         public CellReference(String reference)
         {
             Col = 1;
             Row = 1;
+            IsColumnAbsolute = IsRowAbsolute = false;
             Set(reference);
         }
 
@@ -57,6 +62,7 @@ namespace Giga.Transformer.Excel
         {
             Col = col;
             Row = row;
+            IsColumnAbsolute = IsRowAbsolute = false;
         }
 
         public String ColumnName
@@ -69,14 +75,21 @@ namespace Giga.Transformer.Excel
             {
                 String c = value.ToUpper();
                 if (c.StartsWith("$"))
+                {
                     c = c.Remove(0, 1);
+                    IsColumnAbsolute = true;
+                }
                 Col = Alph26.A2N(c);
             }
         }
 
         public override string ToString()
         {
-            return string.Format("{0}{1}", ColumnName, Row);
+            return string.Format("{0}{1}{2}{3}", 
+                (IsColumnAbsolute ? "$" : ""), 
+                ColumnName, 
+                (IsRowAbsolute ? "$" : ""),
+                Row);
         }
 
         public void Set(String reference)
@@ -89,7 +102,10 @@ namespace Giga.Transformer.Excel
             var row = match.Groups["ROW"].Value;
             ColumnName = col;
             if (row.StartsWith("$"))
+            {
                 row = row.Remove(0, 1);
+                IsRowAbsolute = true;
+            }
             Row = int.Parse(row);
         }
 
@@ -108,24 +124,39 @@ namespace Giga.Transformer.Excel
         public void Move(String relativeRef)
         {
             var rel = new CellReference(relativeRef);
-            Move(rel.Col - 1, rel.Row - 1);
+            if (!rel.IsColumnAbsolute && !rel.IsRowAbsolute)
+            {
+                Move(rel.Col - 1, rel.Row - 1);
+            }
+            else if (rel.IsColumnAbsolute && !rel.IsRowAbsolute)
+            {
+                Col = rel.Col;
+                Move(0, rel.Row - 1);
+            }
+            else if (!rel.IsColumnAbsolute && rel.IsRowAbsolute)
+            {
+                Row = rel.Row;
+                Move(rel.Col - 1, 0);
+            }
+            else
+            {
+                Col = rel.Col;
+                Row = rel.Row;
+            }
         }
 
         public CellReference Offset(int x, int y)
         {
-            int newCol = Col + x;
-            int newRow = Row + y;
-            if (newCol < 1)
-                throw new InvalidOperationException("Cannot move column reference to left of 'A'!");
-            if (newRow < 1)
-                throw new InvalidOperationException("Cannot move row reference to top of 1!");
-            return new CellReference(newCol, newRow);
+            var newCell = new CellReference(Col, Row);
+            newCell.Move(x, y);
+            return newCell;
         }
 
         public CellReference Offset(String relativeRef)
         {
-            var rel = new CellReference(relativeRef);
-            return Offset(rel.Col - 1, rel.Row - 1);
+            var newCell = new CellReference(Col, Row);
+            newCell.Move(relativeRef);
+            return newCell;
         }
     }
 

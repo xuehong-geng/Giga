@@ -90,12 +90,27 @@ namespace Giga.Test.Transformer
             {
                 var serializer = new DataContractJsonSerializer(typeof(TestTabularData));
                 var memStrm = new MemoryStream();
-                var writer = new StreamWriter(memStrm, Encoding.UTF8);
                 serializer.WriteObject(memStrm, entity);
                 byte[] buf = memStrm.GetBuffer();
                 String xmlStr = Encoding.UTF8.GetString(buf);
                 Console.WriteLine(xmlStr);
             }
+        }
+
+        [TestMethod]
+        public void TestLoadRdPoFromFile()
+        {
+            // Get test file
+            var filePath = GetTestFilePath("TransformerTest.xlsx");
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException(String.Format("Test file {0} not found!", filePath));
+            RdPurchaseOrder order = RdPurchaseOrder.Load(filePath);
+            Assert.IsNotNull(order);
+            var ser = new DataContractJsonSerializer(typeof (RdPurchaseOrder));
+            var memStrm = new MemoryStream();
+            ser.WriteObject(memStrm, order);
+            String xmlStr = Encoding.UTF8.GetString(memStrm.GetBuffer());
+            Console.WriteLine(xmlStr);
         }
     }
 }

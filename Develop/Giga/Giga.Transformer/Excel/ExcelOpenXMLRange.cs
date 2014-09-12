@@ -45,16 +45,32 @@ namespace Giga.Transformer.Excel
         public const String REG_CELL_REF = @"(?i)(?<COL>\$?[a-zA-Z]+)(?<ROW>\$?[1-9][0-9]*)";
         public const String REG_RANGE_REF = @"(?i)(?<COL1>\$?[a-zA-Z]+)(?<ROW1>\$?[1-9][0-9]*)\:(?<COL2>\$?[a-zA-Z]+)(?<ROW2>\$?[1-9][0-9]*)";
         public const String REG_RANGE_PART_REF = @"(?i)((?<COL1>\$?[a-zA-Z]+))?((?<ROW1>\$?[1-9][0-9]*))?\:((?<COL2>\$?[a-zA-Z]+))?((?<ROW2>\$?[1-9][0-9]*))?";
+        public const String REG_ANCHOR_CELL = @"(?i)(?<Anchor>.+)#(?<OffsetX>\d+),(?<OffsetY>\d+)";
 
         public static Regex _RegexRange = new Regex(REG_RANGE_PART_REF);
         public static Regex _RegexCell = new Regex(REG_CELL_REF);
-
+        public static Regex _RegexAnchor = new Regex(REG_ANCHOR_CELL);
 
         protected SpreadsheetDocument _doc = null;
         protected Worksheet _sheet = null;
         protected String _reference = null;
         protected CellReference _topLeft = null;
         protected CellReference _bottomRight = null;
+
+        /// <summary>
+        /// Base excel document
+        /// </summary>
+        public SpreadsheetDocument Document
+        {
+            get { return _doc; }
+        }
+        /// <summary>
+        /// Base worksheet
+        /// </summary>
+        public Worksheet Sheet
+        {
+            get { return _sheet; }
+        }
 
         /// <summary>
         /// Initialize a range
@@ -244,7 +260,36 @@ namespace Giga.Transformer.Excel
         /// <returns></returns>
         protected CellReference CalculateCellReference(String relativeRef)
         {
-            CellReference cell = _topLeft.Offset(relativeRef);
+            var matchAchor = _RegexAnchor.Match(relativeRef);
+            if (matchAchor.Success)
+            {   // This cell reference is anchored to another cell
+                try
+                {
+                    var anchor = matchAchor.Groups["Anchor"].Value;
+                    var offx = int.Parse(matchAchor.Groups["OffsetX"].Value);
+                    var offy = int.Parse(matchAchor.Groups["OffsetY"].Value);
+                    var anchorCell = CalculateCellReference(anchor);
+                    anchorCell.Move(offx, offy);
+                    return anchorCell;
+                }
+                catch (Exception err)
+                {
+                    throw new InvalidDataException(String.Format("Cannot get reference of Anchored cell {0}! Err:{1}",
+                        relativeRef, err.Message));
+                }
+            }
+            String address = null;
+            if (!_RegexCell.IsMatch(relativeRef))
+            {   // The cell reference might be defined name
+                address = _doc.GetDefinedName(relativeRef);
+                if (address == null)
+                    throw new InvalidDataException(String.Format("Defined name '{0}' is not exist!", relativeRef));
+            }
+            else
+            {
+                address = relativeRef;
+            }
+            CellReference cell = _topLeft.Offset(address);
             if (!IsInRange(cell))
                 throw new ArgumentException("Try to access cell that is out of range!");
             return cell;
