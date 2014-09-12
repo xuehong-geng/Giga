@@ -106,11 +106,7 @@ namespace Giga.Test.Transformer
                 throw new FileNotFoundException(String.Format("Test file {0} not found!", filePath));
             RdPurchaseOrder order = RdPurchaseOrder.Load(filePath);
             Assert.IsNotNull(order);
-            var ser = new DataContractJsonSerializer(typeof (RdPurchaseOrder));
-            var memStrm = new MemoryStream();
-            ser.WriteObject(memStrm, order);
-            String xmlStr = Encoding.UTF8.GetString(memStrm.GetBuffer());
-            Console.WriteLine(xmlStr);
+            Console.Write(order.ToString());
         }
     }
 }

@@ -96,21 +96,23 @@ namespace Giga.Transformer.Excel
     {
         private readonly SpreadsheetDocument _doc = null;
         private readonly CollectionConfigElement _colCfg = null;
+        private ExcelOpenXMLRange _parentRange = null;
 
-        public ExcelEntityEnumerable(SpreadsheetDocument doc, CollectionConfigElement colCfg)
+        public ExcelEntityEnumerable(SpreadsheetDocument doc, CollectionConfigElement colCfg, ExcelOpenXMLRange parentRange = null)
         {
             _doc = doc;
             _colCfg = colCfg;
+            _parentRange = parentRange;
         }
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            return new ExcelEntityEnumerator<T>(_doc, _colCfg);
+            return new ExcelEntityEnumerator<T>(_doc, _colCfg, _parentRange);
         }
 
         public IEnumerator GetEnumerator()
         {
-            return new ExcelEntityEnumerator<T>(_doc, _colCfg);
+            return new ExcelEntityEnumerator<T>(_doc, _colCfg, _parentRange);
         }
     }
 
@@ -121,21 +123,27 @@ namespace Giga.Transformer.Excel
     {
         private SpreadsheetDocument _doc = null;
         private CollectionConfigElement _colCfg = null;
+        private ExcelOpenXMLRange _parentRange = null;
         private int _currentIdx = 0;
         private T _current = null;
         private ExcelOpenXMLRange _collectionRange = null;
         private ExcelOpenXMLRange _entityRange = null;
-        private ExcelOpenXMLRange _abortBefore = null;
+        private ExcelOpenXMLRange _endBefore = null;
 
         /// <summary>
         /// Initialize entity enumerator
         /// </summary>
         /// <param name="doc">Excel document</param>
         /// <param name="colCfg">Configuration for entity collection template</param>
-        public ExcelEntityEnumerator(SpreadsheetDocument doc, CollectionConfigElement colCfg)
+        /// <param name="parentRange">Parent range that contains collection</param>
+        /// <remarks>
+        /// When parentRange is not null, all reference should be related to it.
+        /// </remarks>
+        public ExcelEntityEnumerator(SpreadsheetDocument doc, CollectionConfigElement colCfg, ExcelOpenXMLRange parentRange = null)
         {
             _doc = doc;
             _colCfg = colCfg;
+            _parentRange = parentRange;
             Reset();
         }
 
@@ -166,10 +174,10 @@ namespace Giga.Transformer.Excel
             _currentIdx = -1;
             _current = null;
             _entityRange = null;
-            _abortBefore = null;
-            if (!String.IsNullOrEmpty(_colCfg.AbortBefore))
+            _endBefore = null;
+            if (!String.IsNullOrEmpty(_colCfg.EndBefore))
             {   // There is abort flag cell, using defined name to mark cell dynamically.
-                _abortBefore = _doc.GetRange(_colCfg.AbortBefore);
+                _endBefore = _doc.GetRange(_colCfg.EndBefore);
             }
         }
 
@@ -206,7 +214,7 @@ namespace Giga.Transformer.Excel
         {
             var tl = new CellReference();
             var br = new CellReference();
-            ExcelOpenXMLRange.CalculateRange(rangeFirst, ref tl, ref br);
+            RangeReference.ParseRange(rangeFirst, ref tl, ref br);
             int height = br.Row - tl.Row + 1;
             int width = br.Col - tl.Col + 1;
             int rangeH = _collectionRange.Height;
@@ -233,16 +241,16 @@ namespace Giga.Transformer.Excel
             tl.Col = c + 1;
             tl.Row = r + 1;
             // Check abort flag
-            if (_abortBefore != null)
+            if (_endBefore != null)
             {
                 if (isVertical)
                 {   // Vertical
-                    if (tl.Row + _collectionRange.Top - 1 >= _abortBefore.Top)
+                    if (tl.Row + _collectionRange.Top - 1 >= _endBefore.Top)
                         throw new NoMoreEntityException(typeof (T));
                 }
                 else
                 {   // Horizontal
-                    if (tl.Col + _collectionRange.Left - 1 >= _abortBefore.Left)
+                    if (tl.Col + _collectionRange.Left - 1 >= _endBefore.Left)
                         throw new NoMoreEntityException(typeof (T));
                 }
             }
@@ -261,8 +269,14 @@ namespace Giga.Transformer.Excel
             // Get range of collection
             if (_collectionRange == null)
             {
-                String rangeCol = _colCfg.Range;
-                _collectionRange = _doc.GetRange(rangeCol);
+                if (_parentRange != null)
+                {
+                    _collectionRange = _parentRange.GetSubRange(_colCfg.Range);
+                }
+                else
+                {
+                    _collectionRange = _doc.GetRange(_colCfg.Range);
+                }
                 if (_collectionRange == null)
                     throw new InvalidDataException(String.Format("Cannot find valid range for collection of {0}!",
                         typeof(T).FullName));

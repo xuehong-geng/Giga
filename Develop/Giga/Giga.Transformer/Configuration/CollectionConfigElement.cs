@@ -25,7 +25,7 @@ namespace Giga.Transformer.Configuration
             }
         }
 
-        [ConfigurationProperty("range", IsRequired = true)]
+        [ConfigurationProperty("range", IsRequired = false, DefaultValue = "")]
         public String Range
         {
             get
@@ -52,19 +52,34 @@ namespace Giga.Transformer.Configuration
         }
 
         /// <summary>
-        /// A defined name/object that acts as the signal of the end of collection.
+        /// A cell reference that acts as the signal of the begining of collection
         /// </summary>
-        /// <remarks>This property is usually used with a collection that is embeded in a form and its count is dynamical.</remarks>
-        [ConfigurationProperty("abortBefore", IsRequired = false, DefaultValue = "")]
-        public String AbortBefore
+        [ConfigurationProperty("startFrom", IsRequired = false, DefaultValue = "")]
+        public String StartFrom
         {
             get
             {
-                return (String) base["abortBefore"];
+                return (String) base["startFrom"];
             }
             set
             {
-                base["abortBefore"] = value;
+                base["startFrom"] = value;
+            }
+        }
+        /// <summary>
+        /// A cell reference that acts as the signal of the end of collection.
+        /// </summary>
+        /// <remarks>This property is usually used with a collection that is embeded in a form and its count is dynamical.</remarks>
+        [ConfigurationProperty("endBefore", IsRequired = false, DefaultValue = "")]
+        public String EndBefore
+        {
+            get
+            {
+                return (String)base["endBefore"];
+            }
+            set
+            {
+                base["endBefore"] = value;
             }
         }
 

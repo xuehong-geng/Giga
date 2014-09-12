@@ -51,5 +51,19 @@ namespace Giga.Transformer.Configuration
                 base["Fields"] = value;
             }
         }
+
+        [ConfigurationProperty("Collections", IsRequired = false)]
+        [ConfigurationCollection(typeof (CollectionConfigElement), AddItemName = "Collection")]
+        public CollectionConfigCollection Collections
+        {
+            get
+            {
+                return (CollectionConfigCollection) base["Collections"];
+            }
+            set
+            {
+                base["Collections"] = value;
+            }
+        }
     }
 }

@@ -50,6 +50,35 @@ namespace Giga.Test.Transformer
 
         public IEnumerable<Item> Items { get; set; }
 
+        public override string ToString()
+        {
+            var b = new StringBuilder();
+            b.AppendFormat("PO Number:{0}\t", Id);
+            b.AppendFormat("Version:{0}\n", Version);
+            b.AppendFormat("Ship to:{0}\n", ShipTo);
+            b.AppendFormat("Ext PO:{0}\r", ExtPo);
+            b.AppendFormat("PO Date:{0}\n", PoDate);
+            b.AppendFormat("Payment:{0}\n", Payment);
+            b.AppendFormat("Delivery:{0}\n", Delivery);
+            b.AppendFormat("IncoTerms:{0}\n", IncoTerms);
+            b.AppendFormat("---------------------Items-----------------------\n");
+            b.AppendLine("ExwDate\t\tLineNumber\t\tPart\t\tDescription\t\tQty\t\tUnitPrice\t\tTotalPrice");
+            foreach (var item in Items)
+            {
+                b.AppendFormat("{0}\t\t{1}\t\t{2}\t\t{3}\t\t{4}\t\t{5}\t\t{6}\n",
+                    item.ExwDate, item.LineNumber, item.Part, item.Description, item.Qty, item.UnitPrice,
+                    item.TotalPrice);
+            }
+            b.AppendFormat("--------------------Additional Notes---------------\n");
+            b.AppendLine(AdditionalNotes);
+            return b.ToString();
+        }
+
+        public RdPurchaseOrder()
+        {
+            Items = new List<Item>();
+        }
+
         /// <summary>
         /// Load data from excel file
         /// </summary>

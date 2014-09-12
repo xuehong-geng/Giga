@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Office2010.PowerPoint;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -33,29 +35,10 @@ namespace Giga.Transformer.Excel
     /// <summary>
     /// Simulating Range in Excel file with OpenXML SDK
     /// </summary>
-    public class ExcelOpenXMLRange
+    public class ExcelOpenXMLRange : RangeReference
     {
-        public static void Swap<T>(ref T t1, ref T t2)
-        {
-            T tmp = t1;
-            t1 = t2;
-            t2 = tmp;
-        }
-
-        public const String REG_CELL_REF = @"(?i)(?<COL>\$?[a-zA-Z]+)(?<ROW>\$?[1-9][0-9]*)";
-        public const String REG_RANGE_REF = @"(?i)(?<COL1>\$?[a-zA-Z]+)(?<ROW1>\$?[1-9][0-9]*)\:(?<COL2>\$?[a-zA-Z]+)(?<ROW2>\$?[1-9][0-9]*)";
-        public const String REG_RANGE_PART_REF = @"(?i)((?<COL1>\$?[a-zA-Z]+))?((?<ROW1>\$?[1-9][0-9]*))?\:((?<COL2>\$?[a-zA-Z]+))?((?<ROW2>\$?[1-9][0-9]*))?";
-        public const String REG_ANCHOR_CELL = @"(?i)(?<Anchor>.+)#(?<OffsetX>\d+),(?<OffsetY>\d+)";
-
-        public static Regex _RegexRange = new Regex(REG_RANGE_PART_REF);
-        public static Regex _RegexCell = new Regex(REG_CELL_REF);
-        public static Regex _RegexAnchor = new Regex(REG_ANCHOR_CELL);
-
         protected SpreadsheetDocument _doc = null;
         protected Worksheet _sheet = null;
-        protected String _reference = null;
-        protected CellReference _topLeft = null;
-        protected CellReference _bottomRight = null;
 
         /// <summary>
         /// Base excel document
@@ -82,8 +65,10 @@ namespace Giga.Transformer.Excel
         {
             _doc = doc;
             _sheet = sheet;
-            _reference = reference;
-            AnalyzeRange();
+            // Since the range might be open (ie. at least one direction is un limited, such as A:J, A1:J), we should
+            // fix it by using sheet's diamention
+            reference = _sheet.ExpandToSheetBound(reference);
+            Set(reference);
         }
 
         /// <summary>
@@ -94,118 +79,23 @@ namespace Giga.Transformer.Excel
         /// <param name="tl">Cell reference for top left corner</param>
         /// <param name="br">Cell reference for bottom right corner</param>
         public ExcelOpenXMLRange(SpreadsheetDocument doc, Worksheet sheet, CellReference tl, CellReference br)
+            : base(tl, br)
         {
             _doc = doc;
             _sheet = sheet;
-            _reference = String.Format("{0}:{1}", tl, br);
-            int l = tl.Col;
-            int r = br.Col;
-            int t = tl.Row;
-            int b = br.Row;
-            if (l > r) Swap(ref l, ref r);
-            if (t > b) Swap(ref t, ref b);
-            _topLeft = new CellReference(l, t);
-            _bottomRight = new CellReference(r, b);
-        }
-
-
-        /// <summary>
-        /// Calculate range from string expression
-        /// </summary>
-        /// <param name="reference"></param>
-        /// <param name="topLeft"></param>
-        /// <param name="bottomRight"></param>
-        public static void CalculateRange(String reference, ref CellReference topLeft, ref CellReference bottomRight)
-        {
-            var matchRange = _RegexRange.Match(reference);
-
-            if (topLeft == null) topLeft = new CellReference();
-            if (bottomRight == null) bottomRight = new CellReference();
-
-            if (matchRange.Success)
-            {   // It's a range
-                var col1 = matchRange.Groups["COL1"].Value;
-                var col2 = matchRange.Groups["COL2"].Value;
-                var row1 = matchRange.Groups["ROW1"].Value;
-                var row2 = matchRange.Groups["ROW2"].Value;
-                var cell1 = new CellReference(col1 + row1);
-                var cell2 = new CellReference(col2 + row2);
-                int left = cell1.Col <= cell2.Col ? cell1.Col : cell2.Col;
-                int right = left == cell1.Col ? cell2.Col : cell1.Col;
-                int top = cell1.Row <= cell2.Row ? cell1.Row : cell2.Row;
-                int bottom = top == cell1.Row ? cell2.Row : cell1.Row;
-                topLeft.Col = left;
-                topLeft.Row = top;
-                bottomRight.Col = right;
-                bottomRight.Row = bottom;
-            }
-            else
-            {
-                var matchCell = _RegexCell.Match(reference);
-                if (matchCell.Success && matchCell.Length == reference.Trim().Length)
-                {   // It's a cell
-                    topLeft.Set(reference);
-                    bottomRight.Set(reference);
-                }
-                else
-                {
-                    throw new InvalidDataException(String.Format("Range reference {0} is invalid!", reference));
-                }
-            }
         }
 
         /// <summary>
-        /// Analyze range data
+        /// Initialize a range with range reference
         /// </summary>
-        protected void AnalyzeRange()
+        /// <param name="doc">Excel document</param>
+        /// <param name="sheet">Worksheet</param>
+        /// <param name="range">Range reference</param>
+        public ExcelOpenXMLRange(SpreadsheetDocument doc, Worksheet sheet, RangeReference range)
+            : base(range)
         {
-            // Since the range might be open (ie. at least one direction is un limited, such as A:J, A1:J), we should
-            // fix it by using sheet's diamention
-            _reference = _sheet.ExpandToSheetBound(_reference);
-            CalculateRange(_reference, ref _topLeft, ref _bottomRight);
-        }
-
-        /// <summary>
-        /// Top cell of range
-        /// </summary>
-        public int Top
-        {
-            get { return _topLeft.Row; }
-        }
-        /// <summary>
-        /// Left cell of range
-        /// </summary>
-        public int Left
-        {
-            get { return _topLeft.Col; }
-        }
-        /// <summary>
-        /// Height of range
-        /// </summary>
-        public int Height
-        {
-            get { return _bottomRight.Row - _topLeft.Row + 1; }
-        }
-        /// <summary>
-        /// Width of range
-        /// </summary>
-        public int Width
-        {
-            get { return _bottomRight.Col - _topLeft.Col + 1; }
-        }
-
-        /// <summary>
-        /// Check if a cell reference is hitting in the range
-        /// </summary>
-        /// <param name="cell">Cell reference</param>
-        /// <returns></returns>
-        public bool IsInRange(CellReference cell)
-        {
-            if (cell.Col >= _topLeft.Col && cell.Col <= _bottomRight.Col &&
-                cell.Row >= _topLeft.Row && cell.Row <= _bottomRight.Row)
-                return true;
-            else
-                return false;
+            _doc = doc;
+            _sheet = sheet;
         }
 
         /// <summary>
@@ -220,45 +110,15 @@ namespace Giga.Transformer.Excel
         /// </remarks>
         public ExcelOpenXMLRange GetSubRange(String relativeRange, bool clipToRange = true)
         {
-            var tl = new CellReference();
-            var br = new CellReference();
-            CalculateRange(relativeRange, ref tl, ref br);
-            var subTL = _topLeft.Offset(tl.Col - 1, tl.Row - 1);
-            var subBR = subTL.Offset(br.Col - tl.Col, br.Row - tl.Row);
-            if (clipToRange)
-            {   // Clip to parent range
-                if (subTL.Col > _bottomRight.Col ||
-                    subTL.Row > _bottomRight.Row ||
-                    subBR.Col < _topLeft.Col ||
-                    subBR.Row < _topLeft.Row)
-                    return null; // Out of range
-                if (subTL.Col < _topLeft.Col) subTL.Col = _topLeft.Col;
-                if (subTL.Row < _topLeft.Row) subTL.Row = _topLeft.Row;
-                if (subBR.Col > _bottomRight.Col) subBR.Col = _bottomRight.Col;
-                if (subBR.Row > _bottomRight.Row) subBR.Row = _bottomRight.Row;
-            }
-            return new ExcelOpenXMLRange(_doc, _sheet, subTL, subBR);
+            return new ExcelOpenXMLRange(_doc, _sheet, SubRange(relativeRange, clipToRange));
         }
 
-        /// <summary>
-        /// Calculate a reference of new cell that is related to the top left corner of range.
-        /// </summary>
-        /// <param name="col">Column offset</param>
-        /// <param name="row">Row offset</param>
-        /// <returns></returns>
-        protected CellReference CalculateCellReference(int col, int row)
-        {
-            CellReference cell = _topLeft.Offset(col - 1, row - 1);
-            if (!IsInRange(cell))
-                throw new ArgumentException("Try to access cell that is out of range!");
-            return cell;
-        }
         /// <summary>
         /// Calculate reference of new cell with its relative address
         /// </summary>
         /// <param name="relativeRef">Address in A1 expression</param>
         /// <returns></returns>
-        protected CellReference CalculateCellReference(String relativeRef)
+        protected CellReference TranslateCellReference(String relativeRef)
         {
             var matchAchor = _RegexAnchor.Match(relativeRef);
             if (matchAchor.Success)
@@ -268,7 +128,7 @@ namespace Giga.Transformer.Excel
                     var anchor = matchAchor.Groups["Anchor"].Value;
                     var offx = int.Parse(matchAchor.Groups["OffsetX"].Value);
                     var offy = int.Parse(matchAchor.Groups["OffsetY"].Value);
-                    var anchorCell = CalculateCellReference(anchor);
+                    var anchorCell = TranslateCellReference(anchor);
                     anchorCell.Move(offx, offy);
                     return anchorCell;
                 }
@@ -289,10 +149,7 @@ namespace Giga.Transformer.Excel
             {
                 address = relativeRef;
             }
-            CellReference cell = _topLeft.Offset(address);
-            if (!IsInRange(cell))
-                throw new ArgumentException("Try to access cell that is out of range!");
-            return cell;
+            return CalculateCellReference(address);
         }
 
         /// <summary>
@@ -355,7 +212,7 @@ namespace Giga.Transformer.Excel
         {
             get
             {
-                CellReference r = CalculateCellReference(relRef);
+                CellReference r = TranslateCellReference(relRef);
                 return GetCellValue(r);
             }
         }
@@ -432,7 +289,51 @@ namespace Giga.Transformer.Excel
                         }
                     }
                 }
-                // TODO:Handle sub collections here.
+            }
+            // Handle sub collections here
+            foreach (CollectionConfigElement colCfg in cfg.Collections)
+            {
+                var pColT = t.GetProperty(colCfg.Name);
+                if (pColT != null)
+                {
+                    var list = pColT.GetValue(ent) as IList;
+                    if (list == null)
+                    {
+                        throw new InvalidOperationException(
+                            String.Format(
+                                "To support load embeded collection, property {0} must be type that implements IList interface and must not be null!",
+                                colCfg.Name));
+                    }
+                    var listType = list.GetType();
+                    if (!listType.IsGenericType)
+                    {
+                        throw new InvalidOperationException(
+                            String.Format("Type of property {0} must be a generic collection!", colCfg.Name));
+                    }
+                    // Get the item type
+                    if (listType.GenericTypeArguments.Count() != 1)
+                    {
+                        throw new InvalidOperationException(
+                            String.Format(
+                                "Type of property {0} must be a generic collection with only one type parameter!",
+                                colCfg.Name));
+                    }
+                    var itemType = listType.GenericTypeArguments[0];
+                    // Instantiate enumerable for item type
+                    var enumType = typeof(ExcelEntityEnumerable<>);
+                    Type[] typeArgs = { itemType };
+                    var eType = enumType.MakeGenericType(typeArgs);
+                    // Embeded collection may has its ranged defined as relative reference, so we should pass the range of main entity
+                    // as a parent container.
+                    var enumerable = Activator.CreateInstance(eType, _doc, colCfg, this) as IEnumerable;
+                    if (enumerable == null)
+                        throw new InvalidOperationException(
+                            String.Format("Cannot create ExcelEntityEnumerable<{0}>!", itemType.Name));
+                    foreach (var item in enumerable)
+                    {
+                        list.Add(item);
+                    }
+                }
             }
 
             return (cfg.AllowNull || entExist) ? ent : null;
