@@ -24,7 +24,7 @@ namespace Giga.Test.Transformer
         public DateTime? DueDate { get; set; }
     }
 
-    public class RdPurchaseOrder
+    public class TestEmbededData
     {
         public String Id { get; set; }
         public String Version { get; set; }
@@ -74,7 +74,7 @@ namespace Giga.Test.Transformer
             return b.ToString();
         }
 
-        public RdPurchaseOrder()
+        public TestEmbededData()
         {
             Items = new List<Item>();
         }
@@ -84,7 +84,7 @@ namespace Giga.Test.Transformer
         /// </summary>
         /// <param name="filePath">Path of excel file</param>
         /// <returns></returns>
-        public static RdPurchaseOrder Load(String filePath)
+        public static TestEmbededData Load(String filePath)
         {
             // Get configuration
             var cfg =
@@ -93,7 +93,7 @@ namespace Giga.Test.Transformer
                 throw new ConfigurationErrorsException("<Giga.Transformer> not exist in configuration!");
             // Load entities from file
             var transformer = new Giga.Transformer.Transformer(cfg);
-            return transformer.LoadOne<RdPurchaseOrder>(filePath, "RdPurchaseOrder");
+            return transformer.LoadOne<TestEmbededData>(filePath, "RdPurchaseOrder");
         }
     }
 }

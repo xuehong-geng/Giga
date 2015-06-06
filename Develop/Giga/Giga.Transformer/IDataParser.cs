@@ -17,8 +17,9 @@ namespace Giga.Transformer
         /// Open a file to parse
         /// </summary>
         /// <param name="filePath"></param>
+        /// <param name="readOnly"></param>
         /// <returns></returns>
-        bool Open(String filePath);
+        bool Open(String filePath, bool readOnly = true);
 
         /// <summary>
         /// Close file currently opened

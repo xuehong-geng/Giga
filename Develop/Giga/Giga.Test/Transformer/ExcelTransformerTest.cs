@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Configuration;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization.Json;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
@@ -45,13 +47,14 @@ namespace Giga.Test.Transformer
         }
 
         [TestMethod]
-        public void TestNormalTabularData_FixedRange()
+        public void TestReadTabularData_FixedRange()
         {
             // Get configuration
             var cfg =
                 ConfigurationManager.GetSection("Giga.Transformer") as TransformerConfigSection;
             if (cfg == null)
                 throw new ConfigurationErrorsException("<Giga.Transformer> not exist in configuration!");
+
             // Get test file
             var filePath = GetTestFilePath("TransformerTest.xlsx");
             if (!File.Exists(filePath))
@@ -61,7 +64,7 @@ namespace Giga.Test.Transformer
             var entities = transformer.Load<TestTabularData>(filePath, "TestNormalTabularData_FixedRange");
             foreach (TestTabularData entity in entities)
             {
-                var serializer = new DataContractJsonSerializer(typeof (TestTabularData));
+                var serializer = new DataContractJsonSerializer(typeof(TestTabularData));
                 var memStrm = new MemoryStream();
                 var writer = new StreamWriter(memStrm, Encoding.UTF8);
                 serializer.WriteObject(memStrm, entity);
@@ -72,7 +75,44 @@ namespace Giga.Test.Transformer
         }
 
         [TestMethod]
-        public void TestNormalTabularData_DynamicRange()
+        public void TestWriteTabularData_FixedRange()
+        {
+            // Get configuration
+            var cfg =
+                ConfigurationManager.GetSection("Giga.Transformer") as TransformerConfigSection;
+            if (cfg == null)
+                throw new ConfigurationErrorsException("<Giga.Transformer> not exist in configuration!");
+            // Get test file
+            var filePath = GetTestFilePath("TransformerTest.xlsx");
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException(String.Format("Test file {0} not found!", filePath));
+            // Create a new file 
+            var newFilePath = GetTestFilePath("TransformerTest_WriteTabular.xlsx");
+            if (File.Exists(newFilePath))
+                File.Delete(newFilePath);
+            File.Copy(filePath, newFilePath);
+            // Load entities from old file
+            var transformer = new Giga.Transformer.Transformer(cfg);
+            var entities = transformer.Load<TestTabularData>(filePath, "TestNormalTabularData_FixedRange").ToList();
+            foreach (TestTabularData entity in entities)
+            {
+                entity.DueDate += new TimeSpan(1, 0, 0, 0);
+                entity.Item += 1;
+                entity.PO += "_new";
+                entity.PODate += new TimeSpan(1, 0, 0, 0);
+                entity.ProductCode += "_new";
+                entity.ProductName += "_new";
+                entity.Qty += 1;
+                entity.Total += 1;
+                entity.UnitPrice += 1;
+                entity.Weight += 1;
+            }
+            // Write entities to new file
+            transformer.Save(newFilePath, "TestNormalTabularData_FixedRange", entities);
+        }
+
+        [TestMethod]
+        public void TestReadTabularData_DynamicRange()
         {
             // Get configuration
             var cfg =
@@ -98,13 +138,13 @@ namespace Giga.Test.Transformer
         }
 
         [TestMethod]
-        public void TestLoadRdPoFromFile()
+        public void TestLoadEmbededDataFromFile()
         {
             // Get test file
             var filePath = GetTestFilePath("TransformerTest.xlsx");
             if (!File.Exists(filePath))
                 throw new FileNotFoundException(String.Format("Test file {0} not found!", filePath));
-            RdPurchaseOrder order = RdPurchaseOrder.Load(filePath);
+            TestEmbededData order = TestEmbededData.Load(filePath);
             Assert.IsNotNull(order);
             Console.Write(order.ToString());
         }

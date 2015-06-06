@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -172,30 +173,30 @@ namespace Giga.Transformer.Excel
                     case CellValues.Boolean:
                         return val != "0";
                     case CellValues.Number:
-                    {
-                        long n = 0;
-                        double d = 0.0;
-                        if (long.TryParse(val, out n))
-                            return n;
-                        if (double.TryParse(val, out d))
-                            return d;
-                        return 0;
-                    }
-                    case CellValues.Date:
-                    {   // Convert serialized date to DateTime
-                        long n = long.Parse(val);
-                        return DateTime.FromBinary(n);
-                    }
-                    case CellValues.SharedString:
-                    {   // Get from shared string table
-                        var shareStrTbl = _doc.WorkbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
-                        if (shareStrTbl == null)
-                            return null;
-                        else
                         {
-                            return shareStrTbl.SharedStringTable.ElementAt(int.Parse(val)).InnerText;
+                            long n = 0;
+                            double d = 0.0;
+                            if (long.TryParse(val, out n))
+                                return n;
+                            if (double.TryParse(val, out d))
+                                return d;
+                            return 0;
                         }
-                    }
+                    case CellValues.Date:
+                        {   // Convert serialized date to DateTime
+                            var dbl = double.Parse(val);
+                            return DateTime.FromOADate(dbl);
+                        }
+                    case CellValues.SharedString:
+                        {   // Get from shared string table
+                            var shareStrTbl = _doc.WorkbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+                            if (shareStrTbl == null)
+                                return null;
+                            else
+                            {
+                                return shareStrTbl.SharedStringTable.ElementAt(int.Parse(val)).InnerText;
+                            }
+                        }
                 }
             }
             return val;
@@ -208,26 +209,63 @@ namespace Giga.Transformer.Excel
         /// <returns></returns>
         protected CellValues GetCellValues(Type type)
         {
-            if (type == typeof (bool))
+            if (type == typeof(bool))
             {
                 return CellValues.Boolean;
             }
-            else if (type == typeof (DateTime))
+            else if (type == typeof(DateTime))
             {
                 return CellValues.Date;
             }
-            else if (type == typeof (short) || type == typeof (ushort) ||
-                     type == typeof (int) || type == typeof (uint) ||
-                     type == typeof (long) || type == typeof (ulong) ||
-                     type == typeof (float) || type == typeof (double) ||
-                     type == typeof (byte) || type == typeof (sbyte))
+            else if (type == typeof(short) || type == typeof(ushort) ||
+                type == typeof(int) || type == typeof(uint) ||
+                type == typeof(long) || type == typeof(ulong) ||
+                type == typeof(float) || type == typeof(double) ||
+                type == typeof(byte) || type == typeof(sbyte) ||
+                type == typeof(Int16) || type == typeof(UInt16) ||
+                type == typeof(Int32) || type == typeof(UInt32) ||
+                type == typeof(Int64) || type == typeof(UInt64))
             {
                 return CellValues.Number;
             }
             else
             {
-                return CellValues.String;
+                return CellValues.SharedString;
             }
+        }
+
+        // Given text and a SharedStringTablePart, creates a SharedStringItem with the specified text 
+        // and inserts it into the SharedStringTablePart. If the item already exists, returns its index.
+        private int InsertSharedStringItem(string text)
+        {
+            SharedStringTablePart shareStringPart;
+            shareStringPart = _doc.WorkbookPart.GetPartsOfType<SharedStringTablePart>().Any()
+                ? _doc.WorkbookPart.GetPartsOfType<SharedStringTablePart>().First()
+                : _doc.WorkbookPart.AddNewPart<SharedStringTablePart>();
+            // If the part does not contain a SharedStringTable, create one.
+            if (shareStringPart.SharedStringTable == null)
+            {
+                shareStringPart.SharedStringTable = new SharedStringTable();
+            }
+
+            int i = 0;
+
+            // Iterate through all the items in the SharedStringTable. If the text already exists, return its index.
+            foreach (SharedStringItem item in shareStringPart.SharedStringTable.Elements<SharedStringItem>())
+            {
+                if (item.InnerText == text)
+                {
+                    return i;
+                }
+
+                i++;
+            }
+
+            // The text does not exist in the part. Create the SharedStringItem and return its index.
+            shareStringPart.SharedStringTable.AppendChild(new SharedStringItem(new DocumentFormat.OpenXml.Spreadsheet.Text(text)));
+            shareStringPart.SharedStringTable.Save();
+
+            return i;
         }
 
         /// <summary>
@@ -237,13 +275,14 @@ namespace Giga.Transformer.Excel
         /// <param name="value">Cell value</param>
         public void SetCellValue(CellReference cellRef, Object value)
         {
+            var cellType = GetCellValues(value == null ? null : value.GetType());
             Cell cell = _sheet.Descendants<Cell>().FirstOrDefault(a => a.CellReference == cellRef.ToString());
             if (cell == null)
             {   // Cell not exist, must create new one
                 cell = new Cell
                 {
                     CellReference = cellRef.ToString(),
-                    DataType = new EnumValue<CellValues>(GetCellValues(typeof (Value)))
+                    DataType = new EnumValue<CellValues>(cellType)
                 };
                 _sheet.AppendChild(cell);
             }
@@ -252,32 +291,36 @@ namespace Giga.Transformer.Excel
                 if (cell.CellValue != null)
                     cell.RemoveChild(cell.CellValue);
             }
-            switch (cell.DataType.Value)
+            switch (cellType)
             {
                 case CellValues.Boolean:
-                {
-                    if ((bool) value)
-                        cell.AppendChild(new CellValue("1"));
-                    else
-                        cell.AppendChild(new CellValue("0"));
-                    break;
-                }
+                    {
+                        if ((bool)value)
+                            cell.AppendChild(new CellValue("1"));
+                        else
+                            cell.AppendChild(new CellValue("0"));
+                        break;
+                    }
                 case CellValues.Number:
-                {
-                    cell.AppendChild(new CellValue(value.ToString()));
-                    break;
-                }
+                    {
+                        cell.AppendChild(new CellValue(value.ToString()));
+                        break;
+                    }
                 case CellValues.Date:
-                {   // Convert serialized date to DateTime
-                    long n = ((DateTime) value).ToBinary();
-                    cell.AppendChild(new CellValue(n.ToString()));
-                    break;
-                }
-                case CellValues.String:
-                {
-                    cell.AppendChild(new CellValue((String) value));
-                    break;
-                }
+                    {   // Convert serialized date to DateTime
+                        var dbl = ((DateTime)value).ToOADate();
+                        cell.AppendChild(new CellValue(dbl.ToString(CultureInfo.InvariantCulture)));
+                        break;
+                    }
+                case CellValues.SharedString:
+                    {
+                        if (value != null)
+                        {
+                            var i = InsertSharedStringItem((String)value);
+                            cell.CellValue = new CellValue(i.ToString());
+                        }
+                        break;
+                    }
             }
         }
 

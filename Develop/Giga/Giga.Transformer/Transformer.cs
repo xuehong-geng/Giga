@@ -108,5 +108,77 @@ namespace Giga.Transformer
             }
             return ent;
         }
+
+        /// <summary>
+        /// Save data entities to file with specific template
+        /// </summary>
+        /// <typeparam name="T">Entity class</typeparam>
+        /// <param name="filePath">Path of file to be save to</param>
+        /// <param name="templateName">Name of template used to write data to file</param>
+        /// <param name="entities">Entities to be saved</param>
+        public void Save<T>(String filePath, String templateName, IEnumerable<T> entities) where T : class
+        {
+            // Find parser
+            TemplateConfigElement templateCfg = _cfg.Templates[templateName];
+            if (templateCfg == null)
+                throw new ConfigurationErrorsException(String.Format("Template {0} not exist!", templateName));
+            var parserCfg = _cfg.Parsers[templateCfg.Parser] as ParserConfigElement;
+            if (parserCfg == null)
+                throw new ConfigurationErrorsException(String.Format("Parser {0} not configured!", templateCfg.Parser));
+            Type parserType = Type.GetType(parserCfg.Type);
+            if (parserType == null)
+                throw new ConfigurationErrorsException(String.Format("Parser {0} not exist!", parserCfg.Type));
+            // Create parser
+            var parser = parserType.Assembly.CreateInstance(parserType.FullName) as IDataParser;
+            if (parser == null)
+                throw new ConfigurationErrorsException(String.Format("Cannot create instance of parser {0}!",
+                    parserType.FullName));
+            // Open file
+            if (!parser.Open(filePath, false))
+                throw new InvalidOperationException(String.Format("Cannot open file {0} with parser {1}!", filePath,
+                    parserType.FullName));
+            // Parse file and get all entities
+            parser.Write(templateCfg, entities);
+            parser.Close();
+        }
+
+        /// <summary>
+        /// Save data entity to file with specific template
+        /// </summary>
+        /// <typeparam name="T">Entity class</typeparam>
+        /// <param name="filePath">Path of file to be save to</param>
+        /// <param name="templateName">Name of template used to write data to file</param>
+        /// <param name="entity">Entity to be saved</param>
+        public void SaveOne<T>(String filePath, String templateName, T entity) where T : class
+        {
+            // Find parser
+            TemplateConfigElement templateCfg = _cfg.Templates[templateName];
+            if (templateCfg == null)
+                throw new ConfigurationErrorsException(String.Format("Template {0} not exist!", templateName));
+            var parserCfg = _cfg.Parsers[templateCfg.Parser] as ParserConfigElement;
+            if (parserCfg == null)
+                throw new ConfigurationErrorsException(String.Format("Parser {0} not configured!", templateCfg.Parser));
+            Type parserType = Type.GetType(parserCfg.Type);
+            if (parserType == null)
+                throw new ConfigurationErrorsException(String.Format("Parser {0} not exist!", parserCfg.Type));
+            // Create parser
+            var parser = parserType.Assembly.CreateInstance(parserType.FullName) as IDataParser;
+            if (parser == null)
+                throw new ConfigurationErrorsException(String.Format("Cannot create instance of parser {0}!",
+                    parserType.FullName));
+            // Open file
+            if (!parser.Open(filePath))
+                throw new InvalidOperationException(String.Format("Cannot open file {0} with parser {1}!", filePath,
+                    parserType.FullName));
+            // Parse file and get all entities
+            try
+            {
+                parser.Write(templateCfg, entity);
+            }
+            finally
+            {
+                parser.Close();
+            }
+        }
     }
 }

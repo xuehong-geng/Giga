@@ -36,18 +36,20 @@ namespace Giga.Transformer.Excel
     public class ExcelParser : IDataParser
     {
         private SpreadsheetDocument _doc = null;
+        private bool _changed = false;
 
         /// <summary>
         /// Open a file to parse
         /// </summary>
         /// <param name="filePath"></param>
+        /// <param name="readOnly"></param>
         /// <returns></returns>
-        public bool Open(String filePath)
+        public bool Open(String filePath, bool readOnly = true)
         {
             // Open excel file
             try
             {
-                _doc = SpreadsheetDocument.Open(filePath, false);
+                _doc = SpreadsheetDocument.Open(filePath, !readOnly);
             }
             catch (Exception err)
             {
@@ -65,6 +67,8 @@ namespace Giga.Transformer.Excel
         {
             if (_doc != null)
             {
+                if (_changed)
+                    _doc.WorkbookPart.Workbook.Save();
                 _doc.Close();
                 _doc = null;
             }
@@ -104,6 +108,7 @@ namespace Giga.Transformer.Excel
             CollectionConfigElement colCfg = config.Collections[0];
             var writter = new ExcelEntityWriter<T>(_doc, colCfg);
             writter.Write(obj);
+            _changed = true;
         }
 
         /// <summary>
@@ -125,6 +130,7 @@ namespace Giga.Transformer.Excel
             {
                 writter.Write(obj);
             }
+            _changed = true;
         }
 
     }
