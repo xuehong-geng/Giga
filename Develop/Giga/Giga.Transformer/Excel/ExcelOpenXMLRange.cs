@@ -290,6 +290,8 @@ namespace Giga.Transformer.Excel
             {
                 if (cell.CellValue != null)
                     cell.RemoveChild(cell.CellValue);
+                if (cell.DataType != null)
+                    cellType = cell.DataType; // Don't change original data type
             }
             switch (cellType)
             {
@@ -316,7 +318,7 @@ namespace Giga.Transformer.Excel
                     {
                         if (value != null)
                         {
-                            var i = InsertSharedStringItem((String)value);
+                            var i = InsertSharedStringItem(value.ToString());
                             cell.CellValue = new CellValue(i.ToString());
                         }
                         break;
@@ -531,10 +533,14 @@ namespace Giga.Transformer.Excel
                                 colCfg.Name));
                     }
                     var itemType = listType.GenericTypeArguments[0];
-                    var writter = new ExcelEntityWriter<T>(_doc, colCfg, this);
-                    foreach (var item in list.OfType<T>())
+                    var writterType = typeof (ExcelEntityWriter<>);
+                    Type[] typeArgs = { itemType };
+                    var wType = writterType.MakeGenericType(typeArgs);
+                    var writter = Activator.CreateInstance(wType, _doc, colCfg, this);
+                    var writeFunc = wType.GetMethod("Write");
+                    foreach (var item in list)
                     {
-                        writter.Write(item);
+                        writeFunc.Invoke(writter, new object[] {item});
                     }
                 }
             }

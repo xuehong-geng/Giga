@@ -95,5 +95,21 @@ namespace Giga.Test.Transformer
             var transformer = new Giga.Transformer.Transformer(cfg);
             return transformer.LoadOne<TestEmbededData>(filePath, "RdPurchaseOrder");
         }
+
+        /// <summary>
+        /// Save data to excel file
+        /// </summary>
+        /// <param name="filePath"></param>
+        public void Save(String filePath)
+        {
+            // Get configuration
+            var cfg =
+                ConfigurationManager.GetSection("Giga.Transformer") as TransformerConfigSection;
+            if (cfg == null)
+                throw new ConfigurationErrorsException("<Giga.Transformer> not exist in configuration!");
+            // Load entities from file
+            var transformer = new Giga.Transformer.Transformer(cfg);
+            transformer.SaveOne(filePath, "RdPurchaseOrder",this);
+        }
     }
 }

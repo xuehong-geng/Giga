@@ -167,7 +167,7 @@ namespace Giga.Transformer
                 throw new ConfigurationErrorsException(String.Format("Cannot create instance of parser {0}!",
                     parserType.FullName));
             // Open file
-            if (!parser.Open(filePath))
+            if (!parser.Open(filePath, false))
                 throw new InvalidOperationException(String.Format("Cannot open file {0} with parser {1}!", filePath,
                     parserType.FullName));
             // Parse file and get all entities
