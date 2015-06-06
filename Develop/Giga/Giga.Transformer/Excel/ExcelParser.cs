@@ -75,7 +75,7 @@ namespace Giga.Transformer.Excel
         /// </summary>
         /// <param name="config">Configuration used to define behavior of data loading</param>
         /// <returns></returns>
-        public IEnumerable<T> Parse<T>(TemplateConfigElement config) where T : class, new()
+        IEnumerable<T> IDataParser.Read<T>(TemplateConfigElement config)
         {
             // Go throw template and parse data from excel file
             if (config.Collections == null || config.Collections.Count < 1)
@@ -87,6 +87,46 @@ namespace Giga.Transformer.Excel
             var parser = new ExcelEntityEnumerable<T>(_doc, colCfg);
             return parser;
         }
+
+        /// <summary>
+        /// Write one object to file with specific configuration and template
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="config">Configuration used to define behavior of data writting</param>
+        /// <param name="obj"></param>
+        void IDataParser.Write<T>(TemplateConfigElement config, T obj)
+        {
+            // Go throw template and parse data from excel file
+            if (config.Collections == null || config.Collections.Count < 1)
+                throw new InvalidOperationException(
+                    "No valid collection found in TemplateConfigElement for ExcelParser!");
+            // This method only handle one collection
+            CollectionConfigElement colCfg = config.Collections[0];
+            var writter = new ExcelEntityWriter<T>(_doc, colCfg);
+            writter.Write(obj);
+        }
+
+        /// <summary>
+        /// Write multiple objects to file with specific configuration and template
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="config">Configuration used to define behavior of data writting</param>
+        /// <param name="objs"></param>
+        void IDataParser.Write<T>(TemplateConfigElement config, IEnumerable<T> objs)
+        {
+            // Go throw template and parse data from excel file
+            if (config.Collections == null || config.Collections.Count < 1)
+                throw new InvalidOperationException(
+                    "No valid collection found in TemplateConfigElement for ExcelParser!");
+            // This method only handle one collection
+            CollectionConfigElement colCfg = config.Collections[0];
+            var writter = new ExcelEntityWriter<T>(_doc, colCfg);
+            foreach (var obj in objs)
+            {
+                writter.Write(obj);
+            }
+        }
+
     }
 
     /// <summary>
@@ -204,62 +244,6 @@ namespace Giga.Transformer.Excel
         }
 
         /// <summary>
-        /// Calculate range of entity
-        /// </summary>
-        /// <param name="rangeFirst">Range in configuration</param>
-        /// <param name="idx">Index of entity</param>
-        /// <param name="isVertical">Whether entities arranged vertically</param>
-        /// <returns></returns>
-        protected String CalculateEntityRange(String rangeFirst, int idx, bool isVertical = true)
-        {
-            var tl = new CellReference();
-            var br = new CellReference();
-            RangeReference.ParseRange(rangeFirst, ref tl, ref br);
-            int height = br.Row - tl.Row + 1;
-            int width = br.Col - tl.Col + 1;
-            int rangeH = _collectionRange.Height;
-            int rangeW = _collectionRange.Width;
-            if (height > rangeH) height = rangeH;   // Make sure height of entity not bigger than collection
-            if (width > rangeW) width = rangeW;     // Make sure width of entity not bigger than collection
-            int c = 0, r = 0;
-            if (isVertical)
-            {   // Entities arranged by rows
-                int entPerRow = rangeW / width; // How many entities could be in one row
-                int rowIdx = idx / entPerRow;
-                int colIdx = idx % entPerRow;
-                r = rowIdx * height;
-                c = colIdx * width;
-            }
-            else
-            {   // Entities arranged by columns
-                int entPerCol = rangeH / height; // How many entities could be in one column
-                int colIdx = idx / entPerCol;
-                int rowIdx = idx % entPerCol;
-                r = rowIdx * height;
-                c = colIdx * width;
-            }
-            tl.Col = c + 1;
-            tl.Row = r + 1;
-            // Check abort flag
-            if (_endBefore != null)
-            {
-                if (isVertical)
-                {   // Vertical
-                    if (tl.Row + _collectionRange.Top - 1 >= _endBefore.Top)
-                        throw new NoMoreEntityException(typeof (T));
-                }
-                else
-                {   // Horizontal
-                    if (tl.Col + _collectionRange.Left - 1 >= _endBefore.Left)
-                        throw new NoMoreEntityException(typeof (T));
-                }
-            }
-
-            br = tl.Offset(width - 1, height - 1);
-            return String.Format("{0}:{1}", tl, br);
-        }
-
-        /// <summary>
         /// Read entity at specific index
         /// </summary>
         /// <typeparam name="T"></typeparam>
@@ -287,8 +271,10 @@ namespace Giga.Transformer.Excel
             {
                 EntityConfigElement entCfg = _colCfg.ItemTemplate.Entity;
                 String entRef = _collectionRange.Sheet.ExpandToSheetBound(entCfg.Range);
-                String entRange = CalculateEntityRange(entRef, _currentIdx,
-                    _colCfg.Orientation.Equals("vertical", StringComparison.OrdinalIgnoreCase));
+                String entRange = ExcelOpenXMLHelper.CalculateEntityRange(_collectionRange, entRef, _currentIdx,
+                    _colCfg.Orientation.Equals("vertical", StringComparison.OrdinalIgnoreCase), _endBefore);
+                if (entRange == null)
+                    throw new NoMoreEntityException(typeof(T));
                 _entityRange = _collectionRange.GetSubRange(entRange);
                 if (_entityRange == null)
                     throw new NoMoreEntityException(typeof(T));
@@ -306,6 +292,74 @@ namespace Giga.Transformer.Excel
         public void Dispose()
         {
             // Do nothing right now.
+        }
+    }
+
+    /// <summary>
+    /// Writer for writting entities into excel file
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    internal class ExcelEntityWriter<T> where T : class
+    {
+        private readonly SpreadsheetDocument _doc = null;
+        private readonly CollectionConfigElement _colCfg = null;
+        private ExcelOpenXMLRange _parentRange = null;
+        private ExcelOpenXMLRange _collectionRange = null;
+        private ExcelOpenXMLRange _entityRange = null;
+
+        public ExcelEntityWriter(SpreadsheetDocument doc, CollectionConfigElement colCfg, ExcelOpenXMLRange parentRange = null)
+        {
+            _doc = doc;
+            _colCfg = colCfg;
+            _parentRange = parentRange;           
+        }
+
+        /// <summary>
+        /// Write one object to excel at current location and move to next location for next object
+        /// </summary>
+        /// <param name="obj"></param>
+        public void Write(T obj)
+        {
+            // Calculate the entity range
+            if (_entityRange == null)
+            {   // No entity range calculated, this is the first entity
+                if (_collectionRange == null)
+                {   // First time, calculate collection range
+                    if (_parentRange != null)
+                    {
+                        _collectionRange = _parentRange.GetSubRange(_colCfg.Range);
+                    }
+                    else
+                    {
+                        _collectionRange = _doc.GetRange(_colCfg.Range);
+                    }
+                    if (_collectionRange == null)
+                        throw new InvalidDataException(String.Format("Cannot find valid range for collection of {0}!",
+                            typeof(T).FullName));
+                }
+                EntityConfigElement entCfg = _colCfg.ItemTemplate.Entity;
+                String entRef = _collectionRange.Sheet.ExpandToSheetBound(entCfg.Range);
+                String entRange = ExcelOpenXMLHelper.CalculateEntityRange(_collectionRange, entRef, 0,
+                    _colCfg.Orientation.Equals("vertical", StringComparison.OrdinalIgnoreCase));
+                if (entRange == null)
+                    throw new NoMoreEntityException(typeof(T));
+                _entityRange = _collectionRange.GetSubRange(entRange);
+                if (_entityRange == null)
+                    throw new NoMoreEntityException(typeof(T));
+            }
+            // Write object to range
+            _entityRange.WriteEntity(_colCfg.ItemTemplate.Entity, obj);
+            // Move range to next
+            if (_colCfg.Orientation.Equals("vertical", StringComparison.OrdinalIgnoreCase))
+            {   // Move vertically
+                int h = _entityRange.Height;
+                _entityRange.Move(0, h);
+            }
+            else
+            {   // Move horizontally
+                int w = _entityRange.Width;
+                _entityRange.Move(w, 0);
+            }
         }
     }
 }

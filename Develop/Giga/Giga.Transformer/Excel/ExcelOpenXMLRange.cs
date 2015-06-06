@@ -110,6 +110,8 @@ namespace Giga.Transformer.Excel
         /// </remarks>
         public ExcelOpenXMLRange GetSubRange(String relativeRange, bool clipToRange = true)
         {
+            if (String.IsNullOrEmpty(relativeRange))
+                throw new ArgumentNullException("relativeRange");
             return new ExcelOpenXMLRange(_doc, _sheet, SubRange(relativeRange, clipToRange));
         }
 
@@ -169,24 +171,114 @@ namespace Giga.Transformer.Excel
                 {
                     case CellValues.Boolean:
                         return val != "0";
+                    case CellValues.Number:
+                    {
+                        long n = 0;
+                        double d = 0.0;
+                        if (long.TryParse(val, out n))
+                            return n;
+                        if (double.TryParse(val, out d))
+                            return d;
+                        return 0;
+                    }
                     case CellValues.Date:
-                        {   // Convert serialized date to DateTime
-                            long n = long.Parse(val);
-                            return DateTime.FromBinary(n);
-                        }
+                    {   // Convert serialized date to DateTime
+                        long n = long.Parse(val);
+                        return DateTime.FromBinary(n);
+                    }
                     case CellValues.SharedString:
-                        {   // Get from shared string table
-                            var shareStrTbl = _doc.WorkbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
-                            if (shareStrTbl == null)
-                                return null;
-                            else
-                            {
-                                return shareStrTbl.SharedStringTable.ElementAt(int.Parse(val)).InnerText;
-                            }
+                    {   // Get from shared string table
+                        var shareStrTbl = _doc.WorkbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+                        if (shareStrTbl == null)
+                            return null;
+                        else
+                        {
+                            return shareStrTbl.SharedStringTable.ElementAt(int.Parse(val)).InnerText;
                         }
+                    }
                 }
             }
             return val;
+        }
+
+        /// <summary>
+        /// Get corresponding cell value type from system type
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        protected CellValues GetCellValues(Type type)
+        {
+            if (type == typeof (bool))
+            {
+                return CellValues.Boolean;
+            }
+            else if (type == typeof (DateTime))
+            {
+                return CellValues.Date;
+            }
+            else if (type == typeof (short) || type == typeof (ushort) ||
+                     type == typeof (int) || type == typeof (uint) ||
+                     type == typeof (long) || type == typeof (ulong) ||
+                     type == typeof (float) || type == typeof (double) ||
+                     type == typeof (byte) || type == typeof (sbyte))
+            {
+                return CellValues.Number;
+            }
+            else
+            {
+                return CellValues.String;
+            }
+        }
+
+        /// <summary>
+        /// Set value of cell
+        /// </summary>
+        /// <param name="cellRef">Cell reference</param>
+        /// <param name="value">Cell value</param>
+        public void SetCellValue(CellReference cellRef, Object value)
+        {
+            Cell cell = _sheet.Descendants<Cell>().FirstOrDefault(a => a.CellReference == cellRef.ToString());
+            if (cell == null)
+            {   // Cell not exist, must create new one
+                cell = new Cell
+                {
+                    CellReference = cellRef.ToString(),
+                    DataType = new EnumValue<CellValues>(GetCellValues(typeof (Value)))
+                };
+                _sheet.AppendChild(cell);
+            }
+            else
+            {
+                if (cell.CellValue != null)
+                    cell.RemoveChild(cell.CellValue);
+            }
+            switch (cell.DataType.Value)
+            {
+                case CellValues.Boolean:
+                {
+                    if ((bool) value)
+                        cell.AppendChild(new CellValue("1"));
+                    else
+                        cell.AppendChild(new CellValue("0"));
+                    break;
+                }
+                case CellValues.Number:
+                {
+                    cell.AppendChild(new CellValue(value.ToString()));
+                    break;
+                }
+                case CellValues.Date:
+                {   // Convert serialized date to DateTime
+                    long n = ((DateTime) value).ToBinary();
+                    cell.AppendChild(new CellValue(n.ToString()));
+                    break;
+                }
+                case CellValues.String:
+                {
+                    cell.AppendChild(new CellValue((String) value));
+                    break;
+                }
+            }
         }
 
         /// <summary>
@@ -202,6 +294,11 @@ namespace Giga.Transformer.Excel
                 CellReference r = CalculateCellReference(col, row);
                 return GetCellValue(r);
             }
+            set
+            {
+                CellReference r = CalculateCellReference(col, row);
+                SetCellValue(r, value);
+            }
         }
         /// <summary>
         /// Cell value indexer
@@ -215,6 +312,11 @@ namespace Giga.Transformer.Excel
                 CellReference r = TranslateCellReference(relRef);
                 return GetCellValue(r);
             }
+            set
+            {
+                CellReference r = TranslateCellReference(relRef);
+                SetCellValue(r, value);
+            }
         }
 
         /// <summary>
@@ -223,7 +325,7 @@ namespace Giga.Transformer.Excel
         /// <param name="val">value read from excel</param>
         /// <param name="tgtType">Target type to be converted to</param>
         /// <returns>Data converted</returns>
-        protected object ConvertExcelValue(object val, Type tgtType)
+        protected static object ConvertExcelValue(object val, Type tgtType)
         {
             if (tgtType == val.GetType())
             {
@@ -337,6 +439,62 @@ namespace Giga.Transformer.Excel
             }
 
             return (cfg.AllowNull || entExist) ? ent : null;
+        }
+
+        /// <summary>
+        /// Write one entity to range
+        /// </summary>
+        /// <typeparam name="T">Type of entity</typeparam>
+        /// <param name="cfg">Configuration that defines fields of entity</param>
+        /// <param name="ent">Entity objet to be written</param>
+        public void WriteEntity<T>(EntityConfigElement cfg, T ent) where T : class
+        {
+            Type t = typeof(T);
+            foreach (FieldConfigElement field in cfg.Fields)
+            {
+                var pT = t.GetProperty(field.Name);
+                if (pT != null)
+                {   // Handle this property
+                    object cellVal = pT.GetValue(ent);
+                    this[field.Range] = cellVal;
+                }
+            }
+            // Handle sub collections here
+            foreach (CollectionConfigElement colCfg in cfg.Collections)
+            {
+                var pColT = t.GetProperty(colCfg.Name);
+                if (pColT != null)
+                {
+                    var list = pColT.GetValue(ent) as IList;
+                    if (list == null)
+                    {
+                        throw new InvalidOperationException(
+                            String.Format(
+                                "To support write embeded collection, property {0} must be type that implements IList interface and must not be null!",
+                                colCfg.Name));
+                    }
+                    var listType = list.GetType();
+                    if (!listType.IsGenericType)
+                    {
+                        throw new InvalidOperationException(
+                            String.Format("Type of property {0} must be a generic collection!", colCfg.Name));
+                    }
+                    // Get the item type
+                    if (listType.GenericTypeArguments.Count() != 1)
+                    {
+                        throw new InvalidOperationException(
+                            String.Format(
+                                "Type of property {0} must be a generic collection with only one type parameter!",
+                                colCfg.Name));
+                    }
+                    var itemType = listType.GenericTypeArguments[0];
+                    var writter = new ExcelEntityWriter<T>(_doc, colCfg, this);
+                    foreach (var item in list.OfType<T>())
+                    {
+                        writter.Write(item);
+                    }
+                }
+            }
         }
     }
 }

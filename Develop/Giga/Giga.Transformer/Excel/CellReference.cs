@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Giga.Transformer.Excel
@@ -368,6 +369,21 @@ namespace Giga.Transformer.Excel
             get { return _bottomRight.Col - _topLeft.Col + 1; }
         }
 
+        /// <summary>
+        /// Move the range
+        /// </summary>
+        /// <param name="x">Delta X</param>
+        /// <param name="y">Delta Y</param>
+        public void Move(int x, int y)
+        {
+            _topLeft.Move(x, y);
+            _bottomRight.Move(x, y);
+        }
+
+        /// <summary>
+        /// Convert range reference to string expression
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return String.Format("{0}:{1}", _topLeft, _bottomRight);
@@ -392,11 +408,12 @@ namespace Giga.Transformer.Excel
         /// </summary>
         /// <param name="col">Column offset</param>
         /// <param name="row">Row offset</param>
+        /// <param name="throwIfNotInRange">Throw exception if the target cell is out of range</param>
         /// <returns></returns>
-        public CellReference CalculateCellReference(int col, int row)
+        public CellReference CalculateCellReference(int col, int row, bool throwIfNotInRange = true)
         {
             CellReference cell = _topLeft.Offset(col - 1, row - 1);
-            if (!IsInRange(cell))
+            if (!IsInRange(cell) && throwIfNotInRange)
                 throw new ArgumentException("Try to access cell that is out of range!");
             return cell;
         }
@@ -404,11 +421,12 @@ namespace Giga.Transformer.Excel
         /// Calculate a reference of new cell that is relative to the top left corner of range.
         /// </summary>
         /// <param name="relativeRef">Relative reference</param>
+        /// <param name="throwIfNotInRange">Throw exception if the target cell is out of range</param>
         /// <returns></returns>
-        public CellReference CalculateCellReference(String relativeRef)
+        public CellReference CalculateCellReference(String relativeRef, bool throwIfNotInRange = true)
         {
             CellReference cell = _topLeft.Offset(relativeRef);
-            if (!IsInRange(cell))
+            if (!IsInRange(cell) && throwIfNotInRange)
                 throw new ArgumentException("Try to access cell that is out of range!");
             return cell;
         }

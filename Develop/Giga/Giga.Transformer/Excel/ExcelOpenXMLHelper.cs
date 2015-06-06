@@ -104,5 +104,61 @@ namespace Giga.Transformer.Excel
                 return reference;
             }
         }
+
+        /// <summary>
+        /// Calculate range of entity
+        /// </summary>
+        /// <param name="rangeFirst">Range in configuration</param>
+        /// <param name="idx">Index of entity</param>
+        /// <param name="isVertical">Whether entities arranged vertically</param>
+        /// <returns></returns>
+        public static String CalculateEntityRange(ExcelOpenXMLRange collectionRange, String rangeFirst, int idx, bool isVertical = true,ExcelOpenXMLRange endBefore = null)
+        {
+            var tl = new CellReference();
+            var br = new CellReference();
+            RangeReference.ParseRange(rangeFirst, ref tl, ref br);
+            int height = br.Row - tl.Row + 1;
+            int width = br.Col - tl.Col + 1;
+            int rangeH = collectionRange.Height;
+            int rangeW = collectionRange.Width;
+            if (height > rangeH) height = rangeH;   // Make sure height of entity not bigger than collection
+            if (width > rangeW) width = rangeW;     // Make sure width of entity not bigger than collection
+            int c = 0, r = 0;
+            if (isVertical)
+            {   // Entities arranged by rows
+                int entPerRow = rangeW / width; // How many entities could be in one row
+                int rowIdx = idx / entPerRow;
+                int colIdx = idx % entPerRow;
+                r = rowIdx * height;
+                c = colIdx * width;
+            }
+            else
+            {   // Entities arranged by columns
+                int entPerCol = rangeH / height; // How many entities could be in one column
+                int colIdx = idx / entPerCol;
+                int rowIdx = idx % entPerCol;
+                r = rowIdx * height;
+                c = colIdx * width;
+            }
+            tl.Col = c + 1;
+            tl.Row = r + 1;
+            // Check abort flag
+            if (endBefore != null)
+            {
+                if (isVertical)
+                {   // Vertical
+                    if (tl.Row + collectionRange.Top - 1 >= endBefore.Top)
+                        return null;
+                }
+                else
+                {   // Horizontal
+                    if (tl.Col + collectionRange.Left - 1 >= endBefore.Left)
+                        return null;
+                }
+            }
+
+            br = tl.Offset(width - 1, height - 1);
+            return String.Format("{0}:{1}", tl, br);
+        }
     }
 }

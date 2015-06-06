@@ -70,6 +70,7 @@
     </None>
     <None Include="Giga.Transformer.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
     </None>
     <None Include="packages.config" />
   </ItemGroup>

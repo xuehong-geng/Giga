@@ -56,7 +56,7 @@ namespace Giga.Transformer
             var lst = new List<T>();
             try
             {
-                IEnumerable<T> set = parser.Parse<T>(templateCfg);
+                IEnumerable<T> set = parser.Read<T>(templateCfg);
                 lst.AddRange(set);
             }
             finally 
@@ -99,7 +99,7 @@ namespace Giga.Transformer
             T ent = null;
             try
             {
-                IEnumerable<T> set = parser.Parse<T>(templateCfg);
+                IEnumerable<T> set = parser.Read<T>(templateCfg);
                 ent = set.FirstOrDefault();
             }
             finally

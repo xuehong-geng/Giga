@@ -30,6 +30,22 @@ namespace Giga.Transformer
         /// </summary>
         /// <param name="config">Configuration used to define behavior of data loading</param>
         /// <returns></returns>
-        IEnumerable<T> Parse<T>(TemplateConfigElement config) where T : class, new();
+        IEnumerable<T> Read<T>(TemplateConfigElement config) where T : class, new();
+
+        /// <summary>
+        /// Write one object to file with specific configuration and template
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="config">Configuration used to define behavior of data writting</param>
+        /// <param name="obj"></param>
+        void Write<T>(TemplateConfigElement config, T obj) where T : class;
+
+        /// <summary>
+        /// Write multiple objects to file with specific configuration and template
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="config">Configuration used to define behavior of data writting</param>
+        /// <param name="objs"></param>
+        void Write<T>(TemplateConfigElement config, IEnumerable<T> objs) where T : class;
     }
 }

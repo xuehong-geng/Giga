@@ -65,6 +65,7 @@
     </None>
     <None Include="Transformer\Giga.Transformer.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
     </None>
     <None Include="Transformer\TransformerTest.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
