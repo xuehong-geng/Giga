@@ -268,6 +268,30 @@ namespace Giga.Transformer.Excel
             return i;
         }
 
+        protected Cell CreateCell(CellReference cellRef, EnumValue<CellValues> dataType)
+        {
+            var sheetData = _sheet.Descendants<SheetData>().FirstOrDefault();
+            if (sheetData == null)
+            {
+                sheetData = new SheetData();
+                _sheet.AppendChild(sheetData);
+            }
+            var row = sheetData.Descendants<Row>().FirstOrDefault(a => a.RowIndex == cellRef.Row);
+            if (row == null)
+            {
+                row = new Row();
+                row.RowIndex = new UInt32Value((uint)cellRef.Row);
+                sheetData.AppendChild(row);
+            }
+            var cell = new Cell
+            {
+                CellReference = cellRef.ToString(),
+                DataType = dataType
+            };
+            row.AppendChild(cell);
+            return cell;
+        }
+
         /// <summary>
         /// Set value of cell
         /// </summary>
@@ -279,12 +303,7 @@ namespace Giga.Transformer.Excel
             Cell cell = _sheet.Descendants<Cell>().FirstOrDefault(a => a.CellReference == cellRef.ToString());
             if (cell == null)
             {   // Cell not exist, must create new one
-                cell = new Cell
-                {
-                    CellReference = cellRef.ToString(),
-                    DataType = new EnumValue<CellValues>(cellType)
-                };
-                _sheet.AppendChild(cell);
+                cell = CreateCell(cellRef, cellType);
             }
             else
             {
@@ -319,7 +338,12 @@ namespace Giga.Transformer.Excel
                         if (value != null)
                         {
                             var i = InsertSharedStringItem(value.ToString());
-                            cell.CellValue = new CellValue(i.ToString());
+                            if (cell.CellValue == null)
+                                cell.CellValue = new CellValue(i.ToString());
+                            if (cell.DataType == null)
+                            {
+                                cell.DataType = new EnumValue<CellValues>(cellType);
+                            }
                         }
                         break;
                     }
@@ -533,14 +557,14 @@ namespace Giga.Transformer.Excel
                                 colCfg.Name));
                     }
                     var itemType = listType.GenericTypeArguments[0];
-                    var writterType = typeof (ExcelEntityWriter<>);
+                    var writterType = typeof(ExcelEntityWriter<>);
                     Type[] typeArgs = { itemType };
                     var wType = writterType.MakeGenericType(typeArgs);
                     var writter = Activator.CreateInstance(wType, _doc, colCfg, this);
                     var writeFunc = wType.GetMethod("Write");
                     foreach (var item in list)
                     {
-                        writeFunc.Invoke(writter, new object[] {item});
+                        writeFunc.Invoke(writter, new object[] { item });
                     }
                 }
             }
