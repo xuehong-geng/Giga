@@ -268,6 +268,32 @@ namespace Giga.Transformer.Excel
             return i;
         }
 
+        protected Row GetPrevRow(int rowNumber, SheetData sheetData)
+        {
+            for(int i=rowNumber-1;i>0;i--)
+            {
+                var prevRow = sheetData.Descendants<Row>().FirstOrDefault(a => a.RowIndex == i);
+                if (prevRow != null)
+                    return prevRow;
+            }
+            return null;
+        }
+
+        protected Cell GetPrevCell(CellReference cell, Row row)
+        {
+            cell = cell.Offset(-1, 0);
+            while (cell.Col > 0)
+            {
+                var prevCell = row.Descendants<Cell>().FirstOrDefault(a => a.CellReference == cell.ToString());
+                if (prevCell != null)
+                    return prevCell;
+                if (cell.Col == 1)
+                    break;
+                cell = cell.Offset(-1, 0);
+            }
+            return null;
+        }
+
         protected Cell CreateCell(CellReference cellRef, EnumValue<CellValues> dataType)
         {
             var sheetData = _sheet.Descendants<SheetData>().FirstOrDefault();
@@ -281,14 +307,22 @@ namespace Giga.Transformer.Excel
             {
                 row = new Row();
                 row.RowIndex = new UInt32Value((uint)cellRef.Row);
-                sheetData.AppendChild(row);
+                var prevRow = GetPrevRow(cellRef.Row, sheetData);
+                if (prevRow == null)
+                    sheetData.InsertAt(row, 0);
+                else
+                    sheetData.InsertAfter(row, prevRow);
             }
             var cell = new Cell
             {
                 CellReference = cellRef.ToString(),
                 DataType = dataType
             };
-            row.AppendChild(cell);
+            var prevCell = GetPrevCell(cellRef, row);
+            if (prevCell == null)
+                row.InsertAt(cell, 0);
+            else
+                row.InsertAfter(cell, prevCell);
             return cell;
         }
 
