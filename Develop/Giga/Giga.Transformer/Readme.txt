@@ -1,7 +1,7 @@
 ﻿！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
 ！Giga.Transformer库是用来处理不同格式数据的读取的工具库。
 ！
-！版本号：0.5
+！版本号：1.2
 ！作者：耿学鸿
 ！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
 
@@ -30,6 +30,11 @@
 7. 如果是读取表单和嵌套数据，比如类型为 TestForm。
 	var entity = transformer.LoadOne<TestForm>(filePath, "TestFormTemplate");
 	其中，系统会自动根据配置把TestForm下的子表读出来。
+
+----- 1.2 新功能 ---------------------------
+1. Excel工作表复制功能
+使用 ExcelUtils.CopyWorksheet(String srcFile, String srcSheet, String tgtFile, uint tgtPos) 函数复制工作表。
+
 
 Thanks！
 Shawn Xuehong Geng
