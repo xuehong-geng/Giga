@@ -4,10 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization.Json;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Xml;
-using System.Xml.Serialization;
 using Giga.Transformer.Configuration;
 using Giga.Transformer.Excel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -222,6 +219,19 @@ namespace Giga.Test.Transformer
                 item.UnitPrice += 1;
             }
             order.Save(newFilePath);
+        }
+
+        [TestMethod]
+        public void TestCopyWorksheet()
+        {
+            // Get test file
+            var srcFile = GetTestFilePath("CopySource.xlsx");
+            var mergeFile = GetTestFilePath("CopyTarget.xlsx");
+            var tgtFile = GetTestFilePath("CopyTarget_Result.xlsx");
+            if (File.Exists(tgtFile))
+                File.Delete(tgtFile);
+            File.Copy(mergeFile, tgtFile);
+            ExcelUtiles.CopyWorksheet(srcFile, "Non open报价", tgtFile, 0);
         }
     }
 }

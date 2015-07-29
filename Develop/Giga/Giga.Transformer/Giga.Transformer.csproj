@@ -55,6 +55,7 @@
     <Compile Include="Excel\ExcelOpenXMLHelper.cs" />
     <Compile Include="Excel\ExcelOpenXMLRange.cs" />
     <Compile Include="Excel\ExcelParser.cs" />
+    <Compile Include="Excel\ExcelUtiles.cs" />
     <Compile Include="IDataParser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Transformer.cs" />
