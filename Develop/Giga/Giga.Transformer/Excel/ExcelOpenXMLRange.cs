@@ -485,7 +485,7 @@ namespace Giga.Transformer.Excel
                     {   // Cell not exist
                         cellExist = false;
                     }
-                    if (cellExist && cellVal != null)
+                    if (cellExist && cellVal != null && pT.CanWrite)
                     {
                         try
                         {
