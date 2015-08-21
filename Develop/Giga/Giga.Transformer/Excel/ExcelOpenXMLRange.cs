@@ -113,7 +113,10 @@ namespace Giga.Transformer.Excel
         {
             if (String.IsNullOrEmpty(relativeRange))
                 throw new ArgumentNullException("relativeRange");
-            return new ExcelOpenXMLRange(_doc, _sheet, SubRange(relativeRange, clipToRange));
+            var subRange = SubRange(relativeRange, clipToRange);
+            if (subRange == null)
+                return null;
+            return new ExcelOpenXMLRange(_doc, _sheet, subRange);
         }
 
         /// <summary>
@@ -165,6 +168,8 @@ namespace Giga.Transformer.Excel
             Cell cell = _sheet.Descendants<Cell>().FirstOrDefault(a => a.CellReference == cellRef.ToString());
             if (cell == null)
                 throw new CellNotExistException(cellRef);
+            if (cell.CellValue == null)
+                return null;
             var val = cell.CellValue.InnerText;
             if (cell.DataType != null)
             {   // Check data type
