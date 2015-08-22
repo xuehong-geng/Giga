@@ -130,6 +130,20 @@ namespace Giga.Transformer.Excel
             IsRowAbsolute = other.IsRowAbsolute;
         }
 
+        public CellReference AsAbsolute(bool includeCol = true, bool includeRow = true)
+        {
+            var c = new CellReference(this);
+            c.IsColumnAbsolute = c.IsRowAbsolute = true;
+            return c;
+        }
+
+        public CellReference AsRelative(bool includeCol = true, bool includeRow = true)
+        {
+            var c = new CellReference(this);
+            c.IsColumnAbsolute = c.IsRowAbsolute = false;
+            return c;
+        }
+
         public String ColumnName
         {
             get
@@ -150,9 +164,9 @@ namespace Giga.Transformer.Excel
 
         public override string ToString()
         {
-            return string.Format("{0}{1}{2}{3}", 
-                (IsColumnAbsolute ? "$" : ""), 
-                ColumnName, 
+            return string.Format("{0}{1}{2}{3}",
+                (IsColumnAbsolute ? "$" : ""),
+                ColumnName,
                 (IsRowAbsolute ? "$" : ""),
                 Row);
         }
@@ -268,14 +282,32 @@ namespace Giga.Transformer.Excel
             int b = bottomRight.Row;
             if (l > r) Swap(ref l, ref r);
             if (t > b) Swap(ref t, ref b);
-            _topLeft = new CellReference(l, t);
-            _bottomRight = new CellReference(r, b);
+            _topLeft = new CellReference(l, t)
+            {
+                IsColumnAbsolute = topLeft.IsColumnAbsolute,
+                IsRowAbsolute = topLeft.IsRowAbsolute
+            };
+            _bottomRight = new CellReference(r, b)
+            {
+                IsColumnAbsolute = topLeft.IsColumnAbsolute,
+                IsRowAbsolute = topLeft.IsRowAbsolute
+            };
         }
 
         public RangeReference(RangeReference r)
         {
             _topLeft = new CellReference(r._topLeft);
             _bottomRight = new CellReference(r._bottomRight);
+        }
+
+        public RangeReference AsAbsolute(bool includeCol = true, bool includeRow = true)
+        {
+            return new RangeReference(_topLeft.AsAbsolute(), _bottomRight.AsAbsolute());
+        }
+
+        public RangeReference AsRelative(bool includeCol = true, bool includeRow = true)
+        {
+            return new RangeReference(_topLeft.AsRelative(), _bottomRight.AsRelative());
         }
 
         /// <summary>
@@ -355,6 +387,20 @@ namespace Giga.Transformer.Excel
             get { return _topLeft.Col; }
         }
         /// <summary>
+        /// Bottom of range
+        /// </summary>
+        public int Bottom
+        {
+            get { return _bottomRight.Row; }
+        }
+        /// <summary>
+        /// Right of range
+        /// </summary>
+        public int Right
+        {
+            get { return _bottomRight.Col; }
+        }
+        /// <summary>
         /// Height of range
         /// </summary>
         public int Height
@@ -367,6 +413,94 @@ namespace Giga.Transformer.Excel
         public int Width
         {
             get { return _bottomRight.Col - _topLeft.Col + 1; }
+        }
+
+        /// <summary>
+        /// Top left cell of range
+        /// </summary>
+        public CellReference TopLeft
+        {
+            get { return _topLeft; }
+        }
+
+        /// <summary>
+        /// Bottom right cell of range
+        /// </summary>
+        public CellReference BottomRight
+        {
+            get { return _bottomRight; }
+        }
+
+        /// <summary>
+        /// Include cell into range
+        /// </summary>
+        /// <param name="cell"></param>
+        public void Include(CellReference cell)
+        {
+            if (IsInRange(cell))
+                return;
+            if (cell.Col < _topLeft.Col) _topLeft.Col = cell.Col;
+            if (cell.Col > _bottomRight.Col) _bottomRight.Col = cell.Col;
+            if (cell.Row < _topLeft.Row) _topLeft.Row = cell.Row;
+            if (cell.Row > _bottomRight.Row) _bottomRight.Row = cell.Row;
+        }
+
+        /// <summary>
+        /// Include range into range
+        /// </summary>
+        /// <param name="range"></param>
+        public void Include(RangeReference range)
+        {
+            Include(range.TopLeft);
+            Include(range.BottomRight);
+        }
+
+        /// <summary>
+        /// Expand range 
+        /// </summary>
+        public void Expand(int left, int right, int top, int bottom)
+        {
+            _topLeft.Col -= left;
+            _topLeft.Row -= top;
+            _bottomRight.Col += right;
+            _bottomRight.Row += bottom;
+        }
+
+        public enum ExcludeMode
+        {
+            Vertical,
+            Horizontal,
+            Both
+        }
+
+        /// <summary>
+        /// Exclude cell from range
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <param name="adjustTopLeft"></param>
+        /// <param name="mode"></param>
+        public void Exclude(CellReference cell, bool adjustTopLeft = false, ExcludeMode mode = ExcludeMode.Both)
+        {
+            if (!IsInRange(cell))
+                return;
+            if (adjustTopLeft)
+            {
+                if (mode == ExcludeMode.Vertical)
+                    _topLeft.Row = cell.Row + 1;
+                else if (mode == ExcludeMode.Horizontal)
+                    _topLeft.Col = cell.Col + 1;
+                else
+                    _topLeft = new CellReference(cell.Col + 1, cell.Row + 1);
+            }
+            else
+            {
+                if (mode == ExcludeMode.Vertical)
+                    _bottomRight.Row = cell.Row - 1;
+                else if (mode == ExcludeMode.Horizontal)
+                    _bottomRight.Col = cell.Col - 1;
+                else
+                    _bottomRight = new CellReference(cell.Col - 1, cell.Row - 1);
+            }
         }
 
         /// <summary>
@@ -401,6 +535,16 @@ namespace Giga.Transformer.Excel
                 return true;
             else
                 return false;
+        }
+
+        /// <summary>
+        /// Check if a range reference is in another
+        /// </summary>
+        /// <param name="range"></param>
+        /// <returns></returns>
+        public bool IsInRange(RangeReference range)
+        {
+            return IsInRange(range._topLeft) && IsInRange(range._bottomRight);
         }
 
         /// <summary>

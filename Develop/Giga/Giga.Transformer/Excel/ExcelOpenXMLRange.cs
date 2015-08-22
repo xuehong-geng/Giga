@@ -273,64 +273,6 @@ namespace Giga.Transformer.Excel
             return i;
         }
 
-        protected Row GetPrevRow(int rowNumber, SheetData sheetData)
-        {
-            for(int i=rowNumber-1;i>0;i--)
-            {
-                var prevRow = sheetData.Descendants<Row>().FirstOrDefault(a => a.RowIndex == i);
-                if (prevRow != null)
-                    return prevRow;
-            }
-            return null;
-        }
-
-        protected Cell GetPrevCell(CellReference cell, Row row)
-        {
-            cell = cell.Offset(-1, 0);
-            while (cell.Col > 0)
-            {
-                var prevCell = row.Descendants<Cell>().FirstOrDefault(a => a.CellReference == cell.ToString());
-                if (prevCell != null)
-                    return prevCell;
-                if (cell.Col == 1)
-                    break;
-                cell = cell.Offset(-1, 0);
-            }
-            return null;
-        }
-
-        protected Cell CreateCell(CellReference cellRef, EnumValue<CellValues> dataType)
-        {
-            var sheetData = _sheet.Descendants<SheetData>().FirstOrDefault();
-            if (sheetData == null)
-            {
-                sheetData = new SheetData();
-                _sheet.AppendChild(sheetData);
-            }
-            var row = sheetData.Descendants<Row>().FirstOrDefault(a => a.RowIndex == cellRef.Row);
-            if (row == null)
-            {
-                row = new Row();
-                row.RowIndex = new UInt32Value((uint)cellRef.Row);
-                var prevRow = GetPrevRow(cellRef.Row, sheetData);
-                if (prevRow == null)
-                    sheetData.InsertAt(row, 0);
-                else
-                    sheetData.InsertAfter(row, prevRow);
-            }
-            var cell = new Cell
-            {
-                CellReference = cellRef.ToString(),
-                DataType = dataType
-            };
-            var prevCell = GetPrevCell(cellRef, row);
-            if (prevCell == null)
-                row.InsertAt(cell, 0);
-            else
-                row.InsertAfter(cell, prevCell);
-            return cell;
-        }
-
         /// <summary>
         /// Set value of cell
         /// </summary>
@@ -342,7 +284,7 @@ namespace Giga.Transformer.Excel
             Cell cell = _sheet.Descendants<Cell>().FirstOrDefault(a => a.CellReference == cellRef.ToString());
             if (cell == null)
             {   // Cell not exist, must create new one
-                cell = CreateCell(cellRef, cellType);
+                cell = _sheet.CreateCell(cellRef, cellType);
             }
             else
             {

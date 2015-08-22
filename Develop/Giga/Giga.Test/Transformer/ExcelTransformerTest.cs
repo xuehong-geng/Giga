@@ -104,6 +104,22 @@ namespace Giga.Test.Transformer
                 entity.UnitPrice += 1;
                 entity.Weight += 1;
             }
+            for (int i = 0; i < 2; i++)
+            {
+                entities.Add(new TestTabularData
+                {
+                    DueDate = DateTime.Now,
+                    Item = i,
+                    PO = "TestPO",
+                    PODate = DateTime.Now,
+                    ProductCode = "ddd",
+                    ProductName = "ddw",
+                    Qty = 12,
+                    Total = 2323,
+                    UnitPrice = 32.32,
+                    Weight = 499.23
+                });
+            }
             // Write entities to new file
             transformer.Save(newFilePath, "TestNormalTabularData_FixedRange", entities);
         }

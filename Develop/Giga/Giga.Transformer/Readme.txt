@@ -35,6 +35,9 @@
 1. Excel工作表复制功能
 使用 ExcelUtils.CopyWorksheet(String srcFile, String srcSheet, String tgtFile, uint tgtPos) 函数复制工作表。
 
+----- 1.3 新功能 ---------------------------
+1. 当使用命名区域定义实体数据区域时，写入更多的数据时自动插入行列。
+2. 插入行列时自动调整交叉的命名区域的大小，并自动更新sheet中公式引用。
 
 Thanks！
 Shawn Xuehong Geng

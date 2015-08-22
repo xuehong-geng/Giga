@@ -342,6 +342,17 @@ namespace Giga.Transformer.Excel
                     if (_collectionRange == null)
                         throw new InvalidDataException(String.Format("Cannot find valid range for collection of {0}!",
                             typeof(T).FullName));
+                    if (!String.IsNullOrEmpty(_colCfg.EndBefore))
+                    {   // Must cut collection before EndBefore
+                        var endRange = _doc.GetRange(_colCfg.EndBefore);
+                        if (endRange != null)
+                        {
+                            _collectionRange.Exclude(endRange.TopLeft, false,
+                                _colCfg.Orientation.Equals("vertical", StringComparison.OrdinalIgnoreCase)
+                                    ? RangeReference.ExcludeMode.Vertical
+                                    : RangeReference.ExcludeMode.Horizontal);
+                        }
+                    }
                 }
                 EntityConfigElement entCfg = _colCfg.ItemTemplate.Entity;
                 String entRef = _collectionRange.Sheet.ExpandToSheetBound(entCfg.Range);
@@ -352,6 +363,18 @@ namespace Giga.Transformer.Excel
                 _entityRange = _collectionRange.GetSubRange(entRange);
                 if (_entityRange == null)
                     throw new NoMoreEntityException(typeof(T));
+            }
+            if (!_collectionRange.IsInRange(_entityRange))
+            {   // Entity is cross over the collection range, we must insert new range for this entity
+                if (_colCfg.Orientation.Equals("vertical", StringComparison.OrdinalIgnoreCase))
+                {   // Insert rows
+                    _entityRange.Sheet.InsertRow(_entityRange.TopLeft, (uint)_entityRange.Height);
+                }
+                else
+                {   // Insert columns
+                    _entityRange.Sheet.InsertColumn(_entityRange.TopLeft, (uint)_entityRange.Width);
+                }
+                _collectionRange.Include(_entityRange);
             }
             // Write object to range
             _entityRange.WriteEntity(_colCfg.ItemTemplate.Entity, obj);
