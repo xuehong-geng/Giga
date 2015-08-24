@@ -92,6 +92,7 @@ namespace Giga.Transformer.Excel
         public const String REG_CELL_REF = @"(?i)(?<COL>\$?[a-zA-Z]+)(?<ROW>\$?[1-9][0-9]*)";
         public const String REG_RANGE_REF = @"(?i)(?<COL1>\$?[a-zA-Z]+)(?<ROW1>\$?[1-9][0-9]*)\:(?<COL2>\$?[a-zA-Z]+)(?<ROW2>\$?[1-9][0-9]*)";
         public const String REG_RANGE_PART_REF = @"(?i)((?<COL1>\$?[a-zA-Z]+))?((?<ROW1>\$?[1-9][0-9]*))?\:((?<COL2>\$?[a-zA-Z]+))?((?<ROW2>\$?[1-9][0-9]*))?";
+        public const String REG_RANGE_OR_CELL_REF = @"(?i)(?<COL1>\$?[a-zA-Z]+)(?<ROW1>\$?[1-9][0-9]*)(\:(?<COL2>\$?[a-zA-Z]+)(?<ROW2>\$?[1-9][0-9]*))?";
 
 
         public static bool IsSame(OpenXmlSimpleType val, OpenXmlSimpleType other)
@@ -681,7 +682,6 @@ namespace Giga.Transformer.Excel
             #region NAMEDRANGES
             var regex = new Regex(REG_REF);
             var wbPart = (WorkbookPart)sheet.WorksheetPart.GetParentParts().First();
-            var nameToUpdate = new List<KeyValuePair<DefinedName, String>>();
             var definedNames = wbPart.Workbook.Descendants<DefinedNames>().FirstOrDefault();
             if (definedNames != null)
             {
@@ -699,6 +699,7 @@ namespace Giga.Transformer.Excel
                         if (sheetObj != null && sheet.WorksheetPart == wbPart.GetPartById(sheetObj.Id))
                         {   // This name is in my sheet
                             var rangeRef = new RangeReference(match.Groups["Range"].Value);
+                            bool changed = false;
                             if (rangeRef.Top <= cellRef.Row && cellRef.Row <= rangeRef.Bottom)
                             {   // This range is crossing insert point, expand its range
                                 if (rangeRef.Width == 1 && rangeRef.Height == 1)
@@ -709,15 +710,20 @@ namespace Giga.Transformer.Excel
                                 {   // Is a range, expand it
                                     rangeRef.Expand(0, 0, 0, (int)count);
                                 }
-                                var newRef = String.Format("{0}!{1}", match.Groups["Sheet"].Value, rangeRef.AsAbsolute());
-                                nameToUpdate.Add(new KeyValuePair<DefinedName, string>(definedName, newRef));
+                                changed = true;
+                            }
+                            else if (rangeRef.Top >= cellRef.Row)
+                            {   // This name is blow the insert point, move it
+                                rangeRef.Move(0, (int) count);
+                                changed = true;
+                            }
+                            var newRef = String.Format("{0}!{1}", match.Groups["Sheet"].Value, rangeRef.AsAbsolute());
+                            if (changed)
+                            {
+                                definedName.Text = newRef;
                             }
                         }
                     }
-                }
-                foreach (var pair in nameToUpdate)
-                {
-                    definedNames.ReplaceChild(new DefinedName(pair.Value) { Name = pair.Key.Name }, pair.Key);
                 }
             }
             #endregion
@@ -743,23 +749,45 @@ namespace Giga.Transformer.Excel
                                 sheetData.Descendants<Cell>().FirstOrDefault(a => a.CellReference == calRef.ToString());
                             if (formularCell != null && formularCell.CellFormula != null)
                             {   // Try to update ranges in formular
-                                var reg = new Regex(REG_RANGE_REF);
+                                var regRange = new Regex(REG_RANGE_OR_CELL_REF);
                                 var formular = formularCell.CellFormula.InnerText;
-                                var match = reg.Match(formular);
+                                var match = regRange.Match(formular);
                                 while (match.Success)
                                 {
-                                    var rangeRef = new RangeReference(match.Value);
+                                    var formularRef = match.Value;
+                                    String newRef = null;
                                     int startPos = match.Index + match.Length;
-                                    if (rangeRef.Top <= cellRef.Row && cellRef.Row <= rangeRef.Bottom + 1)
-                                    {   // This range is crossing or adjacent to insert point, expand its range
-                                        rangeRef.Expand(0, 0, 0, (int)count);
-                                        var newRangeRef = rangeRef.ToString();
-                                        formular = formular.Remove(match.Index, match.Length)
-                                            .Insert(match.Index, newRangeRef);
-                                        startPos = match.Index + newRangeRef.Length;
+                                    if (match.Groups["COL2"].Success)
+                                    {   // It's a range
+                                        var rangeRef = new RangeReference(formularRef);
+                                        if (cellRef.Row <= rangeRef.Top)
+                                        {   // This range is under the insert point, move it
+                                            rangeRef.Move(0, (int) count);
+                                            newRef = rangeRef.ToString();
+                                        }
+                                        else if (cellRef.Row <= rangeRef.Bottom + 1)
+                                        {   // This range is crossed to insert point or just on top of it, expand it
+                                            rangeRef.Expand(0, 0, 0, (int) count);
+                                            newRef = rangeRef.ToString();
+                                        }
                                     }
-                                    match = reg.Match(formular, startPos);
-                                }
+                                    else
+                                    {   // It's a cell
+                                        var rangeRef = new CellReference(formularRef);
+                                        if (cellRef.Row <= rangeRef.Row)
+                                        {   // This cell is under the insert point, move it
+                                            rangeRef.Move(0, (int) count);
+                                            newRef = rangeRef.ToString();
+                                        }
+                                    }
+                                    if (newRef != null)
+                                    {
+                                        formular = formular.Remove(match.Index, match.Length)
+                                            .Insert(match.Index, newRef);
+                                        startPos = match.Index + newRef.Length;
+                                    }
+                                    match = regRange.Match(formular, startPos);
+                                } 
                                 formularCell.CellFormula.Text = formular;
                                 formularCell.CellValue = null; // Remove value of formular, so excel will calculate it next time.
                             }
@@ -817,7 +845,6 @@ namespace Giga.Transformer.Excel
             #region NAMEDRANGES
             var regex = new Regex(REG_REF);
             var wbPart = (WorkbookPart)sheet.WorksheetPart.GetParentParts().First();
-            var nameToUpdate = new List<KeyValuePair<DefinedName, String>>();
             var definedNames = wbPart.Workbook.Descendants<DefinedNames>().FirstOrDefault();
             if (definedNames != null)
             {
@@ -835,7 +862,8 @@ namespace Giga.Transformer.Excel
                         if (sheetObj != null && sheet.WorksheetPart == wbPart.GetPartById(sheetObj.Id))
                         {   // This name is in my sheet
                             var rangeRef = new RangeReference(match.Groups["Range"].Value);
-                            if (rangeRef.Top <= cellRef.Row && cellRef.Row <= rangeRef.Bottom)
+                            var changed = false;
+                            if (rangeRef.Left <= cellRef.Col && cellRef.Col <= rangeRef.Right)
                             {   // This range is crossing insert point, expand its range
                                 if (rangeRef.Width == 1 && rangeRef.Height == 1)
                                 {   // Is a cell, move it
@@ -845,15 +873,20 @@ namespace Giga.Transformer.Excel
                                 {   // Is a range, expand it
                                     rangeRef.Expand(0, (int)count, 0, 0);
                                 }
-                                var newRef = String.Format("{0}!{1}", match.Groups["Sheet"].Value, rangeRef.AsAbsolute());
-                                nameToUpdate.Add(new KeyValuePair<DefinedName, string>(definedName, newRef));
+                                changed = true;
+                            }
+                            else if (rangeRef.Left >= cellRef.Row)
+                            {   // This range is at right of insert point, move it
+                                rangeRef.Move((int) count, 0);
+                                changed = true;
+                            }
+                            var newRef = String.Format("{0}!{1}", match.Groups["Sheet"].Value, rangeRef.AsAbsolute());
+                            if (changed)
+                            {
+                                definedName.Text = newRef;
                             }
                         }
                     }
-                }
-                foreach (var pair in nameToUpdate)
-                {
-                    definedNames.ReplaceChild(new DefinedName(pair.Value) { Name = pair.Key.Name }, pair.Key);
                 }
             }
             #endregion
@@ -879,22 +912,44 @@ namespace Giga.Transformer.Excel
                                 sheetData.Descendants<Cell>().FirstOrDefault(a => a.CellReference == calRef.ToString());
                             if (formularCell != null && formularCell.CellFormula != null)
                             {   // Try to update ranges in formular
-                                var reg = new Regex(REG_RANGE_REF);
+                                var regRange = new Regex(REG_RANGE_OR_CELL_REF);
                                 var formular = formularCell.CellFormula.InnerText;
-                                var match = reg.Match(formular);
+                                var match = regRange.Match(formular);
                                 while (match.Success)
                                 {
-                                    var rangeRef = new RangeReference(match.Value);
+                                    var formularRef = match.Value;
+                                    String newRef = null;
                                     int startPos = match.Index + match.Length;
-                                    if (rangeRef.Left <= cellRef.Col && cellRef.Col <= rangeRef.Right + 1)
-                                    {   // This range is crossing or adjacent to insert point, expand its range
-                                        rangeRef.Expand(0, (int)count, 0, 0);
-                                        var newRangeRef = rangeRef.ToString();
-                                        formular = formular.Remove(match.Index, match.Length)
-                                            .Insert(match.Index, newRangeRef);
-                                        startPos = match.Index + newRangeRef.Length;
+                                    if (match.Groups["COL2"].Success)
+                                    {   // It's a range
+                                        var rangeRef = new RangeReference(formularRef);
+                                        if (cellRef.Col <= rangeRef.Left)
+                                        {   // This range is at right of the insert point, move it
+                                            rangeRef.Move((int)count, 0);
+                                            newRef = rangeRef.ToString();
+                                        }
+                                        else if (cellRef.Col <= rangeRef.Right + 1)
+                                        {   // This range is crossed to insert point or just on left of it, expand it
+                                            rangeRef.Expand(0, (int)count, 0, 0);
+                                            newRef = rangeRef.ToString();
+                                        }
                                     }
-                                    match = reg.Match(formular, startPos);
+                                    else
+                                    {   // It's a cell
+                                        var rangeRef = new CellReference(formularRef);
+                                        if (cellRef.Col <= rangeRef.Col)
+                                        {   // This cell is at right of the insert point, move it
+                                            rangeRef.Move((int)count, 0);
+                                            newRef = rangeRef.ToString();
+                                        }
+                                    }
+                                    if (newRef != null)
+                                    {
+                                        formular = formular.Remove(match.Index, match.Length)
+                                            .Insert(match.Index, newRef);
+                                        startPos = match.Index + newRef.Length;
+                                    }
+                                    match = regRange.Match(formular, startPos);
                                 }
                                 formularCell.CellFormula.Text = formular;
                                 formularCell.CellValue = null; // Remove value of formular, so excel will calculate it next time.
