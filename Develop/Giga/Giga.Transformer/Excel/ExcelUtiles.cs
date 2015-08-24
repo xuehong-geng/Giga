@@ -90,7 +90,7 @@ namespace Giga.Transformer.Excel
             if (calChainPart != null)
             {
                 var iSheetId = new Int32Value((int)sheetid.Value);
-                var calChainEntries = calChainPart.CalculationChain.Descendants<CalculationCell>().Where(c => c.SheetId == iSheetId);
+                var calChainEntries = calChainPart.CalculationChain.Descendants<CalculationCell>().Where(c => c.SheetId.HasValue && c.SheetId.Value == iSheetId);
                 var calcsToDelete = new List<CalculationCell>();
                 foreach (CalculationCell Item in calChainEntries)
                 {
@@ -175,6 +175,8 @@ namespace Giga.Transformer.Excel
             ImportWorksheet(sourceDoc, srcWorkSheet, targetDoc, newSheetPart.Worksheet);
             // Import all necessary resources into target document that referenced by cloned sheet
             //ImportResources(sourceDoc, newSheetPart.Worksheet, targetDoc);
+            // Import defined names
+            ImportDefinedNames(sourceDoc, srcSheetName, targetDoc);
             // Save it
             tgtWbPart.Workbook.Save();
         }
@@ -258,6 +260,39 @@ namespace Giga.Transformer.Excel
             }
         }
 
+        /// <summary>
+        /// Import defined names into target document
+        /// </summary>
+        /// <param name="sourceDoc"></param>
+        /// <param name="sheetName"></param>
+        /// <param name="targetDoc"></param>
+        protected static void ImportDefinedNames(SpreadsheetDocument sourceDoc, String sheetName, SpreadsheetDocument targetDoc)
+        {
+            var srcNames = sourceDoc.WorkbookPart.Workbook.Descendants<DefinedNames>().FirstOrDefault();
+            if (srcNames == null || !srcNames.Any())
+                return; // No names
+            var tgtNames = targetDoc.WorkbookPart.Workbook.Descendants<DefinedNames>().FirstOrDefault();
+            if (tgtNames == null)
+            {
+                tgtNames = targetDoc.WorkbookPart.Workbook.AppendChild(new DefinedNames());
+            }
+            foreach (var srcName in srcNames.Descendants<DefinedName>())
+            {
+                if (srcName.Text.Contains(sheetName))
+                {   // Found one
+                    var tgtName = tgtNames.Descendants<DefinedName>().FirstOrDefault(a => a.Name == srcName.Name);
+                    if (tgtName == null)
+                    {
+                        tgtName = (DefinedName)srcName.Clone();
+                        tgtNames.AppendChild(tgtName);
+                    }
+                    else
+                    {
+                        tgtNames.ReplaceChild((DefinedName) srcName.Clone(), tgtName);
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Import referenced resource for worksheet from source document to target document

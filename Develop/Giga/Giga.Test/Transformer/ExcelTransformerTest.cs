@@ -247,7 +247,8 @@ namespace Giga.Test.Transformer
             if (File.Exists(tgtFile))
                 File.Delete(tgtFile);
             File.Copy(mergeFile, tgtFile);
-            ExcelUtiles.CopyWorksheet(srcFile, "Non open报价", tgtFile, 0);
+            ExcelUtiles.DeleteWorksheet(tgtFile, "Header");
+            ExcelUtiles.CopyWorksheet(srcFile, "Header", tgtFile, 0);
         }
     }
 }
