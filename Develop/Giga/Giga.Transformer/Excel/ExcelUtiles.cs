@@ -177,6 +177,8 @@ namespace Giga.Transformer.Excel
             //ImportResources(sourceDoc, newSheetPart.Worksheet, targetDoc);
             // Import defined names
             ImportDefinedNames(sourceDoc, srcSheetName, targetDoc);
+            // Import calculate chain
+            ImportCalculateChain(sourceDoc, (int)srcSheet.SheetId.Value, targetDoc, (int)sheetId);
             // Save it
             tgtWbPart.Workbook.Save();
         }
@@ -290,6 +292,35 @@ namespace Giga.Transformer.Excel
                     {
                         tgtNames.ReplaceChild((DefinedName) srcName.Clone(), tgtName);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Import calculate chain
+        /// </summary>
+        /// <param name="sourceDoc"></param>
+        /// <param name="srcSheetId"></param>
+        /// <param name="targetDoc"></param>
+        /// <param name="tgtSheetId"></param>
+        protected static void ImportCalculateChain(SpreadsheetDocument sourceDoc, int srcSheetId, SpreadsheetDocument targetDoc, int tgtSheetId)
+        {
+            var srcChainPart = sourceDoc.WorkbookPart.CalculationChainPart;
+            if (srcChainPart != null)
+            {
+                var tgtChainPart = targetDoc.WorkbookPart.CalculationChainPart;
+                if (tgtChainPart == null)
+                    tgtChainPart = targetDoc.WorkbookPart.AddNewPart<CalculationChainPart>();
+                if (tgtChainPart.CalculationChain == null)
+                    tgtChainPart.CalculationChain = new CalculationChain();
+                foreach (
+                    var srcCell in
+                        srcChainPart.CalculationChain.Descendants<CalculationCell>()
+                            .Where(c => c.SheetId.HasValue && c.SheetId.Value == srcSheetId))
+                {
+                    var tgtCell = (CalculationCell) srcCell.Clone();
+                    tgtCell.SheetId = new Int32Value(tgtSheetId);
+                    tgtChainPart.CalculationChain.AppendChild(tgtCell);
                 }
             }
         }
