@@ -197,11 +197,31 @@ namespace Giga.Transformer.Excel
             tgtSheet.SheetFormatProperties = srcSheet.SheetFormatProperties.Clone() as SheetFormatProperties;
             // Import dimension
             tgtSheet.SheetDimension = srcSheet.SheetDimension.Clone() as SheetDimension;
+            // Imported style buffer
+            var dicStyles = new Dictionary<uint, uint>();
             // Import columns
             var srcCols = srcSheet.GetFirstChild<Columns>();
             if (srcCols != null)
             {
-                tgtSheet.AppendChild(srcCols.Clone() as Columns);
+                var tgtCols = tgtSheet.GetFirstChild<Columns>() ?? tgtSheet.AppendChild(new Columns());
+                foreach (var srcCol in srcCols.Descendants<Column>())
+                {
+                    var tgtCol = (Column)srcCol.Clone();
+                    tgtCols.AppendChild(tgtCol);
+                    // Handle column style
+                    if (srcCol.Style != null)
+                    {
+                        uint iNewIdx = 0;
+                        if (dicStyles.ContainsKey(srcCol.Style.Value))
+                            iNewIdx = dicStyles[srcCol.Style.Value];
+                        else
+                        {
+                            iNewIdx = ImportStyle(sourceDoc, srcCol.Style.Value, targetDoc);
+                            dicStyles[srcCol.Style.Value] = iNewIdx;
+                        }
+                        tgtCol.Style = new UInt32Value(iNewIdx);
+                    }
+                }
             }
             // Import sheet data
             var srcSheetData = srcSheet.GetFirstChild<SheetData>();
@@ -221,7 +241,8 @@ namespace Giga.Transformer.Excel
                     if (newRow.StyleIndex != null)
                     {
                         var id = newRow.StyleIndex.Value;
-                        var newId = ImportStyle(sourceDoc, id, targetDoc);
+                        var newId = dicStyles.ContainsKey(id) ? dicStyles[id] : ImportStyle(sourceDoc, id, targetDoc);
+                        dicStyles[id] = newId;
                         newRow.StyleIndex = new UInt32Value(newId);
                     }
                     // Import cells
@@ -241,7 +262,8 @@ namespace Giga.Transformer.Excel
                         if (cell.StyleIndex != null)
                         {
                             uint id = uint.Parse(cell.StyleIndex.InnerText);
-                            uint newId = ImportStyle(sourceDoc, id, targetDoc);
+                            uint newId = dicStyles.ContainsKey(id) ? dicStyles[id] : ImportStyle(sourceDoc, id, targetDoc);
+                            dicStyles[id] = newId;
                             newCell.StyleIndex = new UInt32Value(newId);
                         }
                         // Handle cell metadata
