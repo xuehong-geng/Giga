@@ -298,7 +298,10 @@ namespace Giga.Transformer.Excel
             var tgtNames = targetDoc.WorkbookPart.Workbook.Descendants<DefinedNames>().FirstOrDefault();
             if (tgtNames == null)
             {
-                tgtNames = targetDoc.WorkbookPart.Workbook.AppendChild(new DefinedNames());
+                // Note: The defined names must be insert after sheets to make sure it is previous to calcPr.
+                // if defined names are inserted after calcPr, excel will treat this document as damaged one.
+                var sheets = targetDoc.WorkbookPart.Workbook.Sheets;
+                tgtNames = targetDoc.WorkbookPart.Workbook.InsertAfter(new DefinedNames(), sheets);
             }
             foreach (var srcName in srcNames.Descendants<DefinedName>())
             {
@@ -395,7 +398,7 @@ namespace Giga.Transformer.Excel
             var tgtSharedStringPart = targetDoc.WorkbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
             if (tgtSharedStringPart == null)
             {   // Create one
-                tgtSharedStringPart = targetDoc.AddNewPart<SharedStringTablePart>();
+                tgtSharedStringPart = targetDoc.WorkbookPart.AddNewPart<SharedStringTablePart>();
             }
             if (tgtSharedStringPart.SharedStringTable == null)
             {
