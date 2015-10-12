@@ -90,7 +90,7 @@ namespace Giga.Transformer.Excel
             if (calChainPart != null)
             {
                 var iSheetId = new Int32Value((int)sheetid.Value);
-                var calChainEntries = calChainPart.CalculationChain.Descendants<CalculationCell>().Where(c => c.SheetId.HasValue && c.SheetId.Value == iSheetId);
+                var calChainEntries = calChainPart.CalculationChain.Descendants<CalculationCell>().Where(c => c.SheetId != null && c.SheetId.HasValue && c.SheetId.Value == iSheetId).ToList();
                 var calcsToDelete = new List<CalculationCell>();
                 foreach (CalculationCell Item in calChainEntries)
                 {
